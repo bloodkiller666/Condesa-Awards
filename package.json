@@ -14,7 +14,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "gsap": "^3.12.5",
-    "next": "15.1.6",
+    "next": "15.1.11",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
