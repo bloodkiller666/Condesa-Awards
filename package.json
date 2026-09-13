@@ -15,8 +15,8 @@
     "@supabase/supabase-js": "^2.45.4",
     "gsap": "^3.12.5",
     "next": "15.1.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
