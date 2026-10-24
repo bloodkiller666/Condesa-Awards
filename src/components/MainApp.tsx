@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import HeroIntro from "@/components/HeroIntro";
@@ -10,6 +10,8 @@ import AuthButton from "@/components/AuthButton";
 import AuthModal from "@/components/AuthModal";
 import AlreadyVotedView from "@/components/AlreadyVotedView";
 import BackgroundVideo from "@/components/BackgroundVideo";
+import { CheckIcon, PixelTrophy } from "@/components/ui/Icons";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { LOGO_URL } from "@/lib/assets";
 import type { CategoryWithNominees, CategoryWithResult } from "@/types";
 import type { User } from "@supabase/supabase-js";
@@ -36,10 +38,25 @@ export default function MainApp({
   const [introSeen, setIntroSeen] = useState(false);
   const [showAuthView, setShowAuthView] = useState(false);
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
   // "hasVoted" comes ONLY from the server (userHasVoted prop), so deleting
   // rows in Supabase or clearing browser cache is always reflected.
   const hasVoted = userHasVoted;
+
+  // Entrada del header cuando termina la intro.
+  useGSAP(
+    () => {
+      if (!introSeen || !headerRef.current) return;
+      gsap.from(headerRef.current, {
+        yPercent: -100,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power3.out"
+      });
+    },
+    { dependencies: [introSeen] }
+  );
 
   // Check localStorage and URL params on mount
   useEffect(() => {
@@ -90,44 +107,60 @@ export default function MainApp({
       {/* Fondo animado (se muestra durante la intro también, detrás) */}
       <BackgroundVideo opacity={0.3} dim={0.55} />
 
-      <header className="sticky top-0 z-30 bg-black/90 backdrop-blur border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-30 border-b border-line bg-ink/80 backdrop-blur-md"
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-3">
-            <Image
-              src={LOGO_URL}
-              alt="Condesa Awards"
-              width={36}
-              height={36}
-              className="rounded-sm border border-pink-500/50 shadow-pink-glow"
-              priority
-            />
-            <div className="font-pixel text-sm text-white">
-              CONDESA AWARDS
-              <span className="text-pink-400 ml-1">2026</span>
+            <div className="px-frame px-frame--accent shrink-0">
+              <Image
+                src={LOGO_URL}
+                alt="Condesa Awards"
+                width={36}
+                height={36}
+                className="block"
+                priority
+              />
+            </div>
+            <div className="leading-none">
+              <div className="font-display text-lg font-medium tracking-[0.12em] text-cream">
+                CONDESA AWARDS
+              </div>
+              <div className="mt-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-mute">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse-glow bg-pink" />
+                Edición 2026
+              </div>
             </div>
           </div>
           <AuthButton user={user} onLoginClick={handleLoginClick} />
         </div>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-pink/50 to-transparent" />
       </header>
 
       {/* Login Success Banner */}
       {showLoginSuccess && (
-        <div className="fixed top-0 inset-x-0 z-50 px-4 py-3 animate-slide-down" style={{ animationDuration: "300ms" }}>
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-emerald-500/10 border-2 border-emerald-500/50 rounded-sm p-4 text-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-              <span className="font-pixel text-sm text-emerald-400 neon-text animate-pulse-glow">
-                [ ✔ LOGIN COMPLETADO CON ÉXITO ]
-              </span>
-            </div>
+        <div
+          className="animate-slide-down fixed inset-x-0 top-4 z-[90] flex justify-center px-4"
+          role="status"
+        >
+          <div className="panel panel--accent flex items-center gap-3 px-5 py-3 shadow-hard">
+            <span className="text-pink-400">
+              <CheckIcon size={16} />
+            </span>
+            <span className="font-display text-sm font-medium tracking-[0.14em] text-cream">
+              LOGIN COMPLETADO CON ÉXITO
+            </span>
           </div>
         </div>
       )}
 
-      <main className="min-h-screen flex flex-col relative">
-        <div className="relative z-10 flex-1 flex items-center justify-center">
+      <main className="relative flex min-h-screen flex-col">
+        <div className="relative z-10 flex flex-1 items-center justify-center">
           {!introSeen ? (
-            <div className="text-neutral-500 font-pixel animate-pulse">
+            <div className="font-mono text-xs uppercase tracking-[0.3em] text-mute">
               Iniciando sistema...
+              <span className="ml-1 animate-blink text-pink-400">▌</span>
             </div>
           ) : (
             // Votación cerrada => ganadores SIEMPRE (aunque el usuario ya haya votado).
@@ -149,27 +182,19 @@ export default function MainApp({
         </div>
       </main>
 
-      <footer className="relative z-10 border-t border-white/10 py-8 text-center bg-black/60 backdrop-blur-sm">
-        <p className="font-retro text-neutral-500 text-sm">
-          CONDESA AWARDS 2026 · © TODOS LOS DERECHOS RESERVADOS
-        </p>
+      <footer className="relative z-10 border-t border-line bg-ink/70 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-center sm:flex-row sm:text-left">
+          <div className="flex items-center gap-3">
+            <PixelTrophy size={18} className="text-gold" />
+            <span className="font-display text-sm font-medium tracking-[0.2em] text-cream">
+              CONDESA AWARDS
+            </span>
+          </div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-dim">
+            CONDESA AWARDS 2026 · © TODOS LOS DERECHOS RESERVADOS
+          </p>
+        </div>
       </footer>
-
-      <style jsx global>{`
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-down {
-          animation: slide-down 300ms ease-out forwards;
-        }
-      `}</style>
     </>
   );
 }

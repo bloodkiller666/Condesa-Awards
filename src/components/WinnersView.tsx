@@ -2,57 +2,38 @@
 
 import { useCallback, useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { prefersReducedMotion, scrambleText } from "@/lib/fx";
 import ClipModal from "@/components/ClipModal";
+import { PixelTrophy, PlayIcon } from "@/components/ui/Icons";
 import type { CategoryResult, CategoryWithResult, Nominee } from "@/types";
 
 interface WinnersViewProps {
   categories: CategoryWithResult[];
 }
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
 /* ------------------------------------------------------------------ */
-/* Utilidades retro                                                    */
+/* Efectos                                                             */
 /* ------------------------------------------------------------------ */
 
-const GLYPHS = "▚▞▛▜▙▟█▓▒░01▓█@#$%&*+=<>/\\|";
-const randGlyph = () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-
-/** Escribe texto carácter por carácter con "estática" (efecto decoder). */
-function scrambleText(el: HTMLElement, finalText: string, duration = 0.8) {
-  const proxy = { p: 0 };
-  return gsap.to(proxy, {
-    p: 1,
-    duration,
-    ease: "power2.inOut",
-    onUpdate: () => {
-      const reveal = Math.floor(proxy.p * finalText.length);
-      let out = finalText.slice(0, reveal);
-      for (let i = reveal; i < finalText.length; i++) {
-        out += finalText[i] === " " ? " " : randGlyph();
-      }
-      el.textContent = out;
-    },
-    onComplete: () => {
-      el.textContent = finalText;
-    }
-  });
-}
-
-/** Confeti pixelado rosa (30 divs que caen y giran). */
+/** Confeti pixelado (cuadrados rosa / oro / cian que caen y giran). */
 function burstConfetti(container: HTMLElement) {
-  const colors = ["#ec4899", "#f472b6", "#fbcfe8", "#ffffff"];
-  for (let i = 0; i < 30; i++) {
+  if (prefersReducedMotion()) return;
+  const colors = ["#ff4fa3", "#ffc857", "#62e6ff", "#f4ece1", "#ff9acd"];
+  for (let i = 0; i < 46; i++) {
     const piece = document.createElement("div");
-    const size = 4 + Math.random() * 6;
-    piece.style.cssText = `position:absolute;top:-12px;left:${Math.random() * 100}%;width:${size}px;height:${size * (Math.random() > 0.5 ? 1 : 2)}px;background:${colors[i % colors.length]};z-index:30;pointer-events:none;`;
+    const size = 4 + Math.round(Math.random() * 3) * 2;
+    piece.style.cssText = `position:absolute;top:-12px;left:${Math.random() * 100}%;width:${size}px;height:${size * (Math.random() > 0.6 ? 2 : 1)}px;background:${colors[i % colors.length]};z-index:30;pointer-events:none;`;
     container.appendChild(piece);
     gsap.to(piece, {
       y: container.offsetHeight + 30,
-      x: `+=${(Math.random() - 0.5) * 140}`,
+      x: `+=${(Math.random() - 0.5) * 160}`,
       rotation: Math.random() * 720 - 360,
       opacity: 0,
       duration: 1.6 + Math.random() * 1.4,
       ease: "power1.in",
-      delay: Math.random() * 0.35,
+      delay: Math.random() * 0.4,
       onComplete: () => piece.remove()
     });
   }
@@ -62,7 +43,7 @@ function burstConfetti(container: HTMLElement) {
 /* Filas de resultados                                                 */
 /* ------------------------------------------------------------------ */
 
-/** Fila animada de resultados (barras + contadores) cuando la tarjeta se expande. */
+/** Tabla de posiciones animada (barras + contadores) al expandir la tarjeta. */
 function ResultRows({
   cat,
   winner,
@@ -78,6 +59,15 @@ function ResultRows({
     () => {
       const root = rootRef.current;
       if (!root) return;
+
+      gsap.from(".res-row", {
+        opacity: 0,
+        x: -18,
+        duration: 0.45,
+        stagger: 0.07,
+        ease: "power3.out",
+        clearProps: "opacity,transform"
+      });
 
       // Barras: de 0% a su porcentaje, con stagger.
       const bars = root.querySelectorAll<HTMLElement>(".winners-bar");
@@ -116,9 +106,9 @@ function ResultRows({
   const totalVotes = rows.reduce((s, r) => s + r.vote_count, 0);
 
   return (
-    <div ref={rootRef} className="space-y-3">
-      <p className="font-retro text-[11px] text-neutral-500">
-        {totalVotes === 1 ? "1 VOTO EMITIDO" : `${totalVotes} VOTOS EMITIDOS`}
+    <div ref={rootRef} className="space-y-2.5">
+      <p className="label pb-1">
+        {totalVotes === 1 ? "1 voto emitido" : `${totalVotes} votos emitidos`}
       </p>
 
       {rows.map((r, i) => {
@@ -127,37 +117,39 @@ function ResultRows({
         return (
           <div
             key={r.nominee_id}
-            className={`relative rounded-sm p-3 transition-colors ${
+            className={`res-row relative px-4 py-3 ${
               isWinner
-                ? "border-2 border-pink-500 bg-pink-500/10 shadow-pink-glow"
-                : "border border-white/10 bg-black/40"
+                ? "bg-gold/10 shadow-[inset_0_0_0_1px_rgba(255,200,87,0.55)]"
+                : "bg-ink-3 shadow-[inset_0_0_0_1px_var(--line)]"
             }`}
           >
-            {isWinner && (
-              <span className="absolute -top-2.5 right-3 font-pixel text-[8px] text-pink-400 neon-text bg-black px-2 py-0.5 border border-pink-500/70 animate-pulse-glow">
-                🏆 GANADOR
-              </span>
-            )}
-
-            <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5">
-              <span
-                className={`font-retro text-sm ${
-                  isWinner ? "text-white" : "text-neutral-300"
-                }`}
-              >
-                {String(i + 1).padStart(2, "0")} · {r.name}
-              </span>
-              <div className="flex items-center gap-3 font-retro text-xs">
-                <button
-                  onClick={() => onOpenClip(r)}
-                  className="font-retro text-[11px] text-pink-400 hover:text-white transition-colors"
-                >
-                  [ VER CLIP ]
-                </button>
-                <span className="text-neutral-500">{r.vote_count} V</span>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <div className="flex min-w-0 items-center gap-3">
                 <span
-                  className={`winners-pct font-pixel text-[9px] ${
-                    isWinner ? "text-pink-400 neon-text" : "text-neutral-400"
+                  className={`font-crt text-2xl ${
+                    isWinner ? "text-gold" : "text-dim"
+                  }`}
+                >
+                  {pad(i + 1)}
+                </span>
+                <span
+                  className={`truncate text-[15px] ${
+                    isWinner ? "font-semibold text-cream" : "text-cream-2"
+                  }`}
+                >
+                  {r.name}
+                </span>
+                {isWinner && <PixelTrophy size={16} className="shrink-0 text-gold" />}
+              </div>
+              <div className="flex items-center gap-4">
+                <button onClick={() => onOpenClip(r)} className="link-pixel">
+                  <PlayIcon size={10} />
+                  Ver clip
+                </button>
+                <span className="font-mono text-xs text-mute">{r.vote_count} V</span>
+                <span
+                  className={`winners-pct w-14 text-right font-crt text-2xl ${
+                    isWinner ? "text-gold" : "text-cream-2"
                   }`}
                   data-val={pct}
                 >
@@ -166,12 +158,12 @@ function ResultRows({
               </div>
             </div>
 
-            <div className="h-2.5 bg-neutral-800 border border-white/10 overflow-hidden">
+            <div className="h-2 overflow-hidden bg-ink-5">
               <div
                 className={`winners-bar h-full ${
                   isWinner
-                    ? "bg-gradient-to-r from-pink-600 via-pink-400 to-pink-300 shadow-pink-glow"
-                    : "bg-pink-500/45"
+                    ? "bg-gradient-to-r from-gold-dark via-gold to-[#ffe9a8] shadow-gold-glow"
+                    : "bg-pink/55"
                 }`}
                 data-pct={pct}
                 style={{ width: "0%" }}
@@ -210,7 +202,6 @@ function CategoryCard({
   ) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const [spotlightDone, setSpotlightDone] = useState(false);
 
   const sorted = [...cat.results].sort((a, b) => b.vote_count - a.vote_count);
   const winner = sorted[0] && sorted[0].vote_count > 0 ? sorted[0] : null;
@@ -231,14 +222,15 @@ function CategoryCard({
           scale: 1,
           duration: 0.55,
           ease: "power3.out",
-          delay: Math.min(index * 0.08, 0.6)
+          delay: Math.min(index * 0.08, 0.6),
+          clearProps: "transform"
         }
       );
     },
     { scope: cardRef, dependencies: [] }
   );
 
-  // Spotlight del ganador: al expandirse, el nombre hace scramble + glow.
+  // Spotlight del ganador: al expandirse, trofeo + nombre con scramble + rayos.
   useGSAP(
     () => {
       if (!isExpanded || !cardRef.current) return;
@@ -246,16 +238,32 @@ function CategoryCard({
         "[data-winner-name]"
       );
       if (nameEl && winner) {
-        const tl = gsap.timeline({ delay: 0.55 });
+        const tl = gsap.timeline({ delay: 0.3 });
         tl.fromTo(
+          "[data-winner-trophy]",
+          { scale: 0, rotate: -25, y: 20 },
+          { scale: 1, rotate: 0, y: 0, duration: 0.6, ease: "back.out(2.6)" }
+        ).fromTo(
           nameEl,
-          { scale: 0.6, opacity: 0 },
-          { scale: 1.08, opacity: 1, duration: 0.35, ease: "back.out(2.2)" }
-        ).to(nameEl, { scale: 1, duration: 0.25, ease: "power2.out" });
-        scrambleText(nameEl, winner.name, 0.7);
-        tl.add(() => setSpotlightDone(true));
-      } else {
-        setSpotlightDone(true);
+          { scale: 0.7, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(2)" },
+          "-=0.3"
+        );
+        scrambleText(nameEl, winner.name, 0.8);
+        gsap.to("[data-winner-rays]", {
+          rotate: 360,
+          duration: 28,
+          repeat: -1,
+          ease: "none"
+        });
+        gsap.to("[data-winner-trophy]", {
+          y: -4,
+          duration: 1.6,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+          delay: 1
+        });
       }
     },
     { scope: cardRef, dependencies: [isExpanded] }
@@ -265,86 +273,87 @@ function CategoryCard({
     <div
       ref={cardRef}
       data-cat-id={cat.id}
-      className={`relative border rounded-sm p-5 overflow-hidden transition-colors ${
-        isExpanded && winner
-          ? "border-pink-500/60 bg-pink-950/20 shadow-pink-glow"
-          : "border-white/20 bg-neutral-900/70"
+      className={`panel relative overflow-hidden p-5 sm:p-7 ${
+        isExpanded && winner ? "panel--gold" : ""
       }`}
     >
       {/* Halo de escáner mientras se desencripta */}
       {isGlitching && (
         <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-          <div className="absolute left-0 right-0 h-10 bg-pink-500/20 blur-sm animate-[scanline_0.6s_linear_infinite]" />
+          <div className="absolute left-0 right-0 h-10 bg-pink/25 blur-sm [animation:scan-down_0.6s_linear_infinite]" />
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-        <h3 className="font-retro text-xl sm:text-2xl text-white">
-          <span className="font-pixel text-[10px] text-pink-500/70 mr-2">
-            {String(index + 1).padStart(2, "0")}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="font-crt text-5xl leading-none text-white/[0.14] sm:text-6xl">
+            {pad(index + 1)}
           </span>
-          {cat.icon && <span className="mr-2">{cat.icon}</span>}
-          {cat.name}
-        </h3>
+          {cat.icon && (
+            <div className="px-frame flex h-11 w-11 shrink-0 items-center justify-center text-xl">
+              {cat.icon}
+            </div>
+          )}
+          <h3 className="font-display text-2xl font-medium tracking-wide text-cream sm:text-3xl">
+            {cat.name}
+          </h3>
+        </div>
 
         {!isExpanded ? (
           winner ? (
             <button
               onClick={() => onReveal(cat)}
               disabled={isGlitching}
-              className="group relative font-pixel text-[9px] px-5 py-2.5 bg-black text-pink-400 border-2 border-pink-500 rounded-sm shadow-pink-glow hover:bg-pink-500 hover:text-black transition-colors disabled:opacity-60 overflow-hidden"
+              className="btn btn-primary relative overflow-hidden"
             >
               <span className="relative z-10">
-                {isGlitching ? "▚▚ DESENCRIPTANDO" : "[ REVELAR GANADOR ]"}
+                {isGlitching ? "DESENCRIPTANDO" : "REVELAR GANADOR"}
               </span>
-              {/* Brillo que barre el botón */}
-              <span className="absolute inset-y-0 -left-full w-full bg-gradient-to-r from-transparent via-pink-400/40 to-transparent group-hover:animate-[sweep_0.8s_ease-out]" />
+              <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent [animation:sweep-shine_2.6s_ease-in-out_infinite]" />
             </button>
           ) : (
-            <span className="font-pixel text-[8px] text-neutral-600 border border-white/10 px-3 py-2">
-              SIN VOTOS
-            </span>
+            <span className="label border border-line px-3 py-2">Sin votos</span>
           )
         ) : (
-          <button
-            onClick={() => onCollapse(cat.id)}
-            className="font-pixel text-[9px] px-4 py-2 bg-black text-neutral-300 border border-white/30 rounded-sm hover:border-white hover:text-white transition-colors"
-          >
-            [ OCULTAR ]
+          <button onClick={() => onCollapse(cat.id)} className="btn btn-ghost btn-sm">
+            OCULTAR
           </button>
         )}
       </div>
 
       {!isExpanded ? (
-        <p className="font-sans text-sm text-neutral-500">
+        <p className="mt-4 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-dim">
+          <span className="inline-block h-2 w-16 bg-[repeating-linear-gradient(90deg,var(--ink-5,#271f38)_0_6px,transparent_6px_9px)]" />
           {totalVotes > 0
-            ? `${totalVotes} voto(s) registrados — resultado encriptado.`
-            : "Sin votos registrados aún."}
+            ? `${totalVotes} voto(s) registrados — resultado encriptado`
+            : "Sin votos registrados aún"}
         </p>
       ) : (
         <>
-          {/* Spot del ganador (épico) */}
+          {/* Spot del ganador */}
           {winner && (
-            <div className="relative mb-6 mt-2 text-center" data-winner-spot>
+            <div className="relative my-8 overflow-hidden px-4 py-10 text-center" data-winner-spot>
               <div
-                className={`inline-block transition-opacity duration-300 ${
-                  spotlightDone ? "opacity-100" : "opacity-90"
-                }`}
-              >
-                <p className="font-pixel text-[9px] text-pink-400/80 mb-2 tracking-[0.3em]">
-                  ── GANADOR DE LA CATEGORÍA ──
+                data-winner-rays
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[140%] w-[140%] -translate-x-1/2 -translate-y-1/2 opacity-60 [background:repeating-conic-gradient(from_0deg,rgba(255,200,87,0.16)_0deg_8deg,transparent_8deg_24deg)] [mask-image:radial-gradient(circle,black_0%,transparent_62%)]"
+              />
+              <div className="relative">
+                <div data-winner-trophy className="mx-auto mb-4 inline-block text-gold drop-shadow-[0_0_18px_rgba(255,200,87,0.7)]">
+                  <PixelTrophy size={56} />
+                </div>
+                <p className="eyebrow eyebrow--plain mb-3 text-gold">
+                  — Ganador de la categoría —
                 </p>
                 <p
                   data-winner-name
-                  className="font-pixel text-xl sm:text-3xl text-pink-400 neon-text animate-pulse-glow leading-relaxed break-words"
+                  className="phosphor-gold break-words font-display text-4xl font-medium leading-tight tracking-wide text-gold sm:text-6xl"
                 >
                   {winner.name}
                 </p>
-                <p className="font-retro text-sm text-neutral-400 mt-2">
+                <p className="mt-4 font-mono text-xs uppercase tracking-[0.18em] text-mute">
                   {winner.vote_count} voto(s) · {Number(winner.percentage).toFixed(1)}% de la comunidad
                 </p>
               </div>
-              <div className="h-px w-2/3 mx-auto mt-5 bg-gradient-to-r from-transparent via-pink-500/70 to-transparent" />
             </div>
           )}
 
@@ -360,7 +369,7 @@ function CategoryCard({
       {isGlitching && (
         <div
           data-reveal-static
-          className="pointer-events-none absolute inset-0 crt-static opacity-0 z-10"
+          className="pointer-events-none absolute inset-0 z-10 crt-static opacity-0"
         />
       )}
     </div>
@@ -372,16 +381,16 @@ function CategoryCard({
 /* ------------------------------------------------------------------ */
 
 /**
- * Vista de ganadores / gala (edición épica).
+ * Vista de ganadores / gala.
  *
- * - Título con flicker de neón + subtítulo con máquina de escribir.
- * - Cada categoría es una tarjeta colapsada con hover neón.
- * - Al pulsar "[ REVELAR GANADOR ]": glitch GSAP (jitter + estática CRT +
- *   línea de escáner) y la tarjeta se expande EN SITIO.
- * - El nombre del ganador aparece con spotlight (scale back.out) + efecto
- *   decoder/scramble + confeti pixelado rosa.
- * - Barras de porcentaje y contadores animados por fila.
- * - Cada nominado conserva su botón "[ VER CLIP ]" (ClipModal intacto).
+ * - Título con aberración cromática + subtítulo decodificado.
+ * - Cada categoría es una tarjeta "sellada".
+ * - Al pulsar REVELAR GANADOR: glitch GSAP (jitter + estática CRT + línea de
+ *   escáner) y la tarjeta se expande EN SITIO.
+ * - El ganador aparece con trofeo dorado, rayos giratorios, scramble del
+ *   nombre y confeti pixelado.
+ * - Tabla de posiciones con barras y contadores animados.
+ * - Cada nominado conserva su botón "VER CLIP" (ClipModal).
  */
 export default function WinnersView({ categories }: WinnersViewProps) {
   const rootRef = useRef<HTMLElement>(null);
@@ -431,20 +440,28 @@ export default function WinnersView({ categories }: WinnersViewProps) {
     setExpanded((prev) => ({ ...prev, [id]: false }));
   }, []);
 
-  // Header: flicker de neón del título.
+  // Header: entrada, aberración cromática viva y subtítulo decodificado.
   useGSAP(
     () => {
       if (!rootRef.current) return;
+
+      gsap.from(".gala-head > *", {
+        opacity: 0,
+        y: 24,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: "power3.out"
+      });
+
       gsap.to(".gala-title", {
-        textShadow:
-          "0 0 8px #f472b6, 0 0 22px #ec4899, 0 0 50px rgba(236,72,153,0.6), 0 0 90px rgba(236,72,153,0.35)",
-        duration: 1.4,
+        "--rgb-split": "3px",
+        duration: 1.6,
         yoyo: true,
         repeat: -1,
         ease: "sine.inOut"
       });
 
-      // Subtítulo con máquina de escribir.
+      // Subtítulo con efecto decoder.
       const subtitle = rootRef.current.querySelector<HTMLElement>(
         "[data-gala-subtitle]"
       );
@@ -489,17 +506,17 @@ export default function WinnersView({ categories }: WinnersViewProps) {
         ease: "steps(1)"
       });
 
-      // Fogonazo de estática CRT (más intenso que antes).
+      // Fogonazo de estática CRT.
       if (staticLayer) {
         tl.fromTo(
           staticLayer,
           { opacity: 0 },
-          { opacity: 0.9, duration: 0.09, yoyo: true, repeat: 6 },
+          { opacity: 0.85, duration: 0.09, yoyo: true, repeat: 6 },
           0
         ).to(staticLayer, { opacity: 0, duration: 0.08 });
       }
 
-      // Flash rosa global breve.
+      // Flash global breve.
       tl.fromTo(
         card,
         { filter: "brightness(2.2) saturate(2)" },
@@ -518,28 +535,28 @@ export default function WinnersView({ categories }: WinnersViewProps) {
     <section
       ref={rootRef}
       id="ganadores"
-      className="relative py-14 px-4 max-w-5xl mx-auto w-full"
+      className="relative mx-auto w-full max-w-5xl px-4 py-14"
     >
       {/* Header de gala */}
-      <div className="text-center mb-4">
-        <p className="font-pixel text-[9px] text-pink-500/80 tracking-[0.35em] mb-3">
-          ── TRANSMISIÓN EN VIVO ──
+      <div className="gala-head mb-10 text-center">
+        <p className="eyebrow eyebrow--plain mb-4 justify-center text-pink-400">
+          <span className="inline-block h-2 w-2 animate-pulse-glow bg-[#ff4f6a] shadow-[0_0_10px_#ff4f6a]" />
+          Transmisión en vivo
         </p>
-        <h2 className="gala-title font-pixel text-3xl sm:text-4xl md:text-5xl text-white mb-3">
+        <h2 className="gala-title rgb-split mb-4 font-display text-6xl font-medium tracking-[0.06em] text-cream sm:text-8xl">
           GANADORES
         </h2>
         <p
           data-gala-subtitle
           data-text="Resultados oficiales de la comunidad"
-          className="font-retro text-neutral-400 text-lg"
+          className="font-mono text-sm uppercase tracking-[0.18em] text-mute"
         >
-          {"\u00A0"}
+          {" "}
         </p>
+        <div className="rule mx-auto mt-8 max-w-xl" />
       </div>
 
-      <div className="h-px w-full max-w-xl mx-auto mb-10 bg-gradient-to-r from-transparent via-pink-500/60 to-transparent" />
-
-      <div className="space-y-6">
+      <div className="space-y-5">
         {categories.map((cat, i) => (
           <CategoryCard
             key={cat.id}
@@ -554,8 +571,8 @@ export default function WinnersView({ categories }: WinnersViewProps) {
         ))}
       </div>
 
-      <p className="mt-10 text-center font-pixel text-[8px] text-neutral-600 tracking-widest">
-        [ FIN DE LA TRANSMISIÓN · CONDESA AWARDS 2026 ]
+      <p className="mt-12 text-center font-mono text-[11px] uppercase tracking-[0.3em] text-dim">
+        — Fin de la transmisión · Condesa Awards 2026 —
       </p>
 
       <ClipModal
@@ -565,26 +582,6 @@ export default function WinnersView({ categories }: WinnersViewProps) {
         results={clip?.results ?? []}
         onClose={() => setClip(null)}
       />
-
-      {/* Keyframes locales (sweep del botón + línea de escáner) */}
-      <style jsx global>{`
-        @keyframes sweep {
-          from {
-            left: -100%;
-          }
-          to {
-            left: 100%;
-          }
-        }
-        @keyframes scanline {
-          0% {
-            top: -10%;
-          }
-          100% {
-            top: 110%;
-          }
-        }
-      `}</style>
     </section>
   );
 }

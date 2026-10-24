@@ -6,7 +6,7 @@ Sitio web de premiación estilo "Retro Moderno" (Synthwave/Arcade/Neon) construi
 
 - **Framework:** Next.js 15 (App Router), React 19, TypeScript
 - **Gestor de paquetes:** pnpm
-- **Estilos:** Tailwind CSS + Google Fonts (`Press Start 2P`, `Chakra Petch`, `VT323`, `Inter`)
+- **Estilos:** Tailwind CSS + Google Fonts (`Pixelify Sans`, `VT323`, `IBM Plex Mono`, `Inter`)
 - **Backend/DB:** Supabase (Auth, Postgres, RLS)
 - **Animaciones:** GSAP (`@gsap/react`, ScrollTrigger)
 

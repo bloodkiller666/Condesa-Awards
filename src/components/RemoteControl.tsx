@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { gsap } from "@/lib/gsap";
+import { PowerIcon } from "@/components/ui/Icons";
 
 export type RemoteActiveState =
   | "power"
@@ -17,12 +18,10 @@ interface RemoteControlProps {
   onChangeChannel: () => void;
 }
 
-const BASE_BTN =
-  "transition-transform active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none";
-
 /**
  * Control remoto retro de TV con gating interactivo: solo los botones
- * requeridos por el paso activo de la intro están habilitados.
+ * requeridos por el paso activo de la intro están habilitados (y respiran
+ * para indicar al usuario qué pulsar).
  */
 export default function RemoteControl({
   activeState,
@@ -37,8 +36,8 @@ export default function RemoteControl({
     if (container.current) {
       gsap.fromTo(
         container.current,
-        { y: 0 },
-        { y: 3, duration: 0.08, yoyo: true, repeat: 1 }
+        { y: 0, rotate: 0 },
+        { y: 3, rotate: 0.6, duration: 0.08, yoyo: true, repeat: 1, clearProps: "transform" }
       );
     }
     action();
@@ -53,82 +52,89 @@ export default function RemoteControl({
     <button
       key={d}
       disabled={!isDigitEnabled(d)}
+      data-hint={isDigitEnabled(d)}
       onClick={() => press(() => onDigit(d))}
-      className={`${BASE_BTN} bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-retro text-sm w-9 h-9 rounded-md shadow-md border border-neutral-500`}
+      aria-label={`Número ${d}`}
+      className="key h-9 w-9 text-sm"
     >
       {d}
     </button>
   );
 
   return (
-    <div
-      ref={container}
-      className="bg-neutral-800 border-2 border-neutral-700 shadow-2xl p-4 w-48 rounded-2xl flex flex-col items-center gap-3"
-    >
+    <div ref={container} className="remote flex w-52 flex-col items-center gap-4 px-4 pb-5 pt-4">
+      {/* Emisor IR + marca */}
+      <div className="flex w-full items-center justify-between px-1">
+        <span className="h-1.5 w-8 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(0,0,0,0.9),0_1px_0_rgba(255,255,255,0.1)]" />
+        <span className="font-mono text-[9px] font-semibold tracking-[0.3em] text-dim">
+          CA-2026
+        </span>
+      </div>
+
       {/* Power */}
       <button
         disabled={activeState !== "power"}
+        data-hint={activeState === "power"}
         onClick={() => press(onPower)}
-        className={`${BASE_BTN} bg-red-600 hover:bg-red-500 text-white font-retro text-sm tracking-widest px-5 py-2 rounded-lg shadow-lg shadow-red-900/50 border border-red-500`}
+        className="key key--power gap-2 rounded-full px-6 py-2 text-xs tracking-[0.2em]"
       >
+        <PowerIcon size={12} />
         POWER
       </button>
 
+      {/* Visor LCD del canal */}
+      <div className="lcd flex h-10 w-full items-center justify-between px-3">
+        <span className="font-mono text-[9px] tracking-[0.2em] text-dim">CH</span>
+        <span
+          className="font-crt text-3xl leading-none tracking-[0.35em] text-pink-400 phosphor"
+          aria-live="polite"
+        >
+          {enteredDigits.padEnd(2, "_")}
+        </span>
+      </div>
+
       {/* Teclado numérico 3x4 */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2.5">
         {digits.map(numBtn)}
 
-        {/* Fila por convención CH/VOL (ubicados en las dos celdas centrales) */}
-        <button
-          disabled
-          className={`${BASE_BTN} bg-neutral-700 text-neutral-500 font-retro text-[9px] w-9 h-9 rounded-md border border-neutral-600`}
-        >
+        <button disabled className="key h-9 w-9 text-[9px] tracking-wider">
           CH+
         </button>
         <button
           disabled={activeState !== "channel"}
           onClick={() => press(() => onDigit("0"))}
-          className={`${BASE_BTN} bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-retro text-sm w-9 h-9 rounded-md shadow-md border border-neutral-500`}
+          aria-label="Número 0"
+          className="key h-9 w-9 text-sm"
         >
           0
         </button>
-        <button
-          disabled
-          className={`${BASE_BTN} bg-neutral-700 text-neutral-500 font-retro text-[9px] w-9 h-9 rounded-md border border-neutral-600`}
-        >
+        <button disabled className="key h-9 w-9 text-[9px] tracking-wider">
           CH-
         </button>
       </div>
 
       {/* Navegación de canal y volumen */}
-      <div className="grid grid-cols-2 gap-2 w-full">
+      <div className="grid w-full grid-cols-2 gap-2.5">
         <button
           disabled={activeState !== "changeChannel"}
+          data-hint={activeState === "changeChannel"}
           onClick={() => press(onChangeChannel)}
-          className={`${BASE_BTN} bg-pink-600 hover:bg-pink-500 disabled:bg-neutral-700 text-white font-retro text-[10px] px-2 py-2 rounded-md shadow-md border border-pink-500`}
+          className="key key--pink rounded-lg px-2 py-2 text-[10px] leading-tight tracking-wider"
         >
           CAMBIAR CANAL
         </button>
         <div className="flex flex-col gap-2">
-          <button
-            disabled
-            className={`${BASE_BTN} bg-neutral-700 text-neutral-500 font-retro text-[10px] py-1 rounded-md border border-neutral-600`}
-          >
+          <button disabled className="key rounded-md py-1 text-[10px] tracking-wider">
             VOL +
           </button>
-          <button
-            disabled
-            className={`${BASE_BTN} bg-neutral-700 text-neutral-500 font-retro text-[10px] py-1 rounded-md border border-neutral-600`}
-          >
+          <button disabled className="key rounded-md py-1 text-[10px] tracking-wider">
             VOL -
           </button>
         </div>
       </div>
 
-      {/* Indicador de canal ingresado */}
-      <div className="font-crt text-2xl tracking-[0.5em] text-pink-400 h-8 leading-8">
-        {enteredDigits.padEnd(2, "_")}
-      </div>
+      {/* Rejilla decorativa del micrófono */}
+      <div className="tv-grille h-3 w-16 rounded-full opacity-70" />
     </div>
   );
 }

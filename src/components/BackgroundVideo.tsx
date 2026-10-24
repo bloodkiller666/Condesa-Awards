@@ -51,8 +51,14 @@ export default function BackgroundVideo({
       />
       {/* Capa de oscurecimiento para legibilidad del texto */}
       <div className="absolute inset-0 bg-black" style={{ opacity: dim }} />
-      {/* Scanlines CRT sutiles sobre el fondo */}
-      <div className="absolute inset-0 crt-scanlines opacity-20" />
+      {/* Tinte de marca: luz magenta arriba, viñeta oscura en los bordes */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255,79,163,0.14), transparent 70%), radial-gradient(ellipse at center, transparent 45%, rgba(7,5,11,0.85) 100%)"
+        }}
+      />
     </div>
   );
 }

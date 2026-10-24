@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { prefersReducedMotion, scrambleText } from "@/lib/fx";
 import RemoteControl, { RemoteActiveState } from "./RemoteControl";
 import TermsModal from "./TermsModal";
 import TitleScreen from "./TitleScreen";
@@ -18,9 +19,14 @@ type IntroState =
   | "COUNTDOWN"
   | "TITLE";
 
+const WELCOME_TEXT =
+  "¡GRACIAS POR ENCENDER LA TV! POR REALIZAR Y CONTARME DE NUEVO EN ESTA NUEVA EDICIÓN DE TUS PREMIACIONES CON ESTE NUEVO FORMATO, POR SALVAR NUESTRAS PRÓSTATAS Y SER MADRE LUCHONA.";
+
 export default function HeroIntro({ onEnter }: HeroIntroProps) {
   const root = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
+  const welcomeText = useRef<HTMLParagraphElement>(null);
+  const countNumber = useRef<HTMLParagraphElement>(null);
   const [state, setState] = useState<IntroState>("OFF");
   const [enteredDigits, setEnteredDigits] = useState("");
   const [countdown, setCountdown] = useState(3);
@@ -30,20 +36,23 @@ export default function HeroIntro({ onEnter }: HeroIntroProps) {
   useGSAP(
     () => {
       gsap.to(".hero-grid", {
-        backgroundPosition: "0px 200px",
-        duration: 24,
+        backgroundPosition: "0px 176px",
+        duration: 4,
         repeat: -1,
         ease: "none"
       });
 
-      gsap.to(".neon-title", {
-        textShadow:
-          "0 0 8px #f472b6, 0 0 22px #ec4899, 0 0 50px rgba(236,72,153,0.6), 0 0 90px rgba(236,72,153,0.4)",
-        duration: 1.2,
-        yoyo: true,
-        repeat: -1,
-        ease: "sine.inOut"
-      });
+      // Entrada de la escena: la TV "aterriza" y el control sube.
+      if (!prefersReducedMotion()) {
+        gsap.from(".intro-tv", { opacity: 0, y: 40, scale: 0.97, duration: 0.8, ease: "power3.out" });
+        gsap.from(".intro-remote", {
+          opacity: 0,
+          y: 60,
+          duration: 0.8,
+          delay: 0.2,
+          ease: "power3.out"
+        });
+      }
     },
     { scope: root }
   );
@@ -58,11 +67,19 @@ export default function HeroIntro({ onEnter }: HeroIntroProps) {
 
   const handlePower = () => {
     if (state !== "OFF") return;
-    gsap.fromTo(
+
+    // Encendido CRT: la imagen se abre desde una línea con un fogonazo.
+    const tl = gsap.timeline();
+    tl.fromTo(
       screen.current,
-      { scaleY: 0.005, opacity: 0 },
-      { scaleY: 1, opacity: 1, duration: 0.5 }
-    );
+      { scaleY: 0.005, scaleX: 0.4, opacity: 0, filter: "brightness(4)" },
+      { scaleY: 0.005, scaleX: 1, opacity: 1, duration: 0.18, ease: "power2.out" }
+    ).to(screen.current, {
+      scaleY: 1,
+      filter: "brightness(1)",
+      duration: 0.5,
+      ease: "power4.out"
+    });
 
     // Inicia "The Final Countdown" de fondo.
     if (!audioRef.current) {
@@ -122,6 +139,35 @@ export default function HeroIntro({ onEnter }: HeroIntroProps) {
     setCountdown(3);
   };
 
+  // Mensaje de bienvenida: se "decodifica" en pantalla.
+  useEffect(() => {
+    if (state !== "WELCOME" || !welcomeText.current) return;
+    const tween = scrambleText(welcomeText.current, WELCOME_TEXT, 1.8);
+    return () => {
+      tween.kill();
+      if (welcomeText.current) welcomeText.current.textContent = WELCOME_TEXT;
+    };
+  }, [state]);
+
+  // Cada número de la cuenta regresiva entra con un golpe (scale + RGB).
+  useEffect(() => {
+    if (state !== "COUNTDOWN" || !countNumber.current || prefersReducedMotion()) return;
+    const tween = gsap.fromTo(
+      countNumber.current,
+      { scale: 1.9, opacity: 0, "--rgb-split": "18px" },
+      { scale: 1, opacity: 1, "--rgb-split": "2px", duration: 0.55, ease: "expo.out" }
+    );
+    const ring = gsap.fromTo(
+      ".count-ring",
+      { scale: 0.4, opacity: 0.9 },
+      { scale: 1.6, opacity: 0, duration: 0.9, ease: "power2.out" }
+    );
+    return () => {
+      tween.kill();
+      ring.kill();
+    };
+  }, [state, countdown]);
+
   // Countdown 3 -> 2 -> 1 -> TITLE
   useEffect(() => {
     if (state !== "COUNTDOWN") return;
@@ -145,85 +191,123 @@ export default function HeroIntro({ onEnter }: HeroIntroProps) {
           : "disabled";
 
   return (
-    <div ref={root} className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-      <div
-        ref={screen}
-        className={`relative w-full max-w-5xl h-[60vh] border-2 border-neutral-700 rounded-sm overflow-hidden flex items-center justify-center ${
-          state === "OFF" ? "bg-neutral-900" : "bg-black"
-        }`}
-      >
-        {/* Overlay CRT permanente */}
-        <div className="pointer-events-none absolute inset-0 crt-scanlines opacity-30 z-20" />
-        <div className="pointer-events-none absolute inset-0 crt-vignette z-20" />
+    <div
+      ref={root}
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink"
+      style={{
+        backgroundImage:
+          "radial-gradient(ellipse 70% 50% at 50% 38%, rgba(255,79,163,0.10), transparent 70%), radial-gradient(ellipse at 50% 100%, rgba(255,79,163,0.06), transparent 60%)"
+      }}
+    >
+      <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col items-center justify-center gap-6 px-4 py-6 sm:gap-8">
+        {/* Carcasa de TV */}
+        <div className="intro-tv tv w-full">
+          <div className="tv-bezel">
+            <div
+              ref={screen}
+              className={`tv-screen flex h-[clamp(230px,36vh,480px)] items-center justify-center ${
+                state === "OFF" ? "bg-ink-3" : "bg-black"
+              }`}
+            >
+              {/* Overlays CRT permanentes */}
+              <div className="pointer-events-none absolute inset-0 z-20 crt-scanlines opacity-40" />
+              <div className="pointer-events-none absolute inset-0 z-20 crt-vignette" />
+              <div className="tv-glare" />
 
-        {/* State 1: SEÑAL PERDIDA */}
-        {state === "OFF" && (
-          <>
-            <div className="absolute inset-0 crt-static z-10" />
-            <div className="relative z-10 text-white font-crt text-center px-6">
-              <p className="text-5xl sm:text-6xl tracking-widest animate-pulse-glow">
-                SEÑAL PERDIDA
-              </p>
-              <p className="text-2xl mt-4 text-neutral-400">
-                USA EL CONTROL REMOTO
-              </p>
+              {/* State 1: SEÑAL PERDIDA */}
+              {state === "OFF" && (
+                <>
+                  <div className="crt-static absolute inset-0 z-10 opacity-80" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-gradient-to-b from-transparent via-white/15 to-transparent [animation:tracking-bar_3.4s_linear_infinite]" />
+                  <div className="relative z-10 bg-black/75 px-8 py-5 text-center font-crt text-cream shadow-[0_0_0_2px_rgba(255,255,255,0.12)]">
+                    <p className="animate-pulse-glow text-5xl tracking-widest sm:text-6xl">
+                      SEÑAL PERDIDA
+                    </p>
+                    <p className="mt-3 text-2xl tracking-wider text-mute">
+                      USA EL CONTROL REMOTO
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* State 2: Entrada de canal */}
+              {state === "CHANNEL_ENTRY" && (
+                <div className="relative z-10 px-6 text-center font-crt text-cream">
+                  <p className="phosphor-cream text-3xl tracking-widest sm:text-4xl">
+                    INGRESE CANAL EN EL CONTROL REMOTO
+                  </p>
+                  <p className="phosphor mt-6 text-7xl tracking-[0.4em] text-pink-400">
+                    [ {enteredDigits.padEnd(2, "_")} ]
+                  </p>
+                </div>
+              )}
+
+              {/* State 3: Mensaje de bienvenida */}
+              {state === "WELCOME" && (
+                <div className="relative z-10 max-w-3xl p-8 text-center">
+                  <p className="mb-6 font-crt text-2xl tracking-[0.3em] text-mute">
+                    CH 69 - AV INPUT
+                  </p>
+                  <p
+                    ref={welcomeText}
+                    className="phosphor font-crt text-3xl leading-snug text-pink-300 sm:text-4xl"
+                  >
+                    {WELCOME_TEXT}
+                  </p>
+                  <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-cream">
+                    PRESIONA &apos;CAMBIAR CANAL&apos; PARA ENTRAR.
+                    <span className="ml-1 animate-blink text-pink-400">▌</span>
+                  </p>
+                </div>
+              )}
+
+              {/* State 4: Countdown retro */}
+              {state === "COUNTDOWN" && (
+                <>
+                  <div className="absolute inset-x-0 bottom-0 h-[58%] overflow-hidden [perspective:420px]">
+                    <div className="hero-grid retro-grid absolute -inset-x-1/2 top-0 bottom-0 origin-top opacity-70 [transform:rotateX(64deg)] [mask-image:linear-gradient(to_bottom,transparent,black_55%)]" />
+                  </div>
+                  <div className="relative z-10 flex items-center justify-center">
+                    <span className="count-ring absolute h-56 w-56 rounded-full border-2 border-pink/70" />
+                    <p
+                      ref={countNumber}
+                      className="rgb-split font-crt text-[10rem] leading-none text-cream sm:text-[13rem]"
+                    >
+                      {countdown}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* State 5: Título principal */}
+              {state === "TITLE" && <TitleScreen onEnter={() => setShowTerms(true)} />}
             </div>
-          </>
-        )}
-
-        {/* State 2: Entrada de canal */}
-        {state === "CHANNEL_ENTRY" && (
-          <div className="relative z-10 text-white font-crt text-center px-6">
-            <p className="text-3xl sm:text-4xl tracking-widest">
-              INGRESE CANAL EN EL CONTROL REMOTO
-            </p>
-            <p className="text-6xl tracking-[0.5em] mt-6 text-pink-400">
-              [ {enteredDigits.padEnd(2, "_")} ]
-            </p>
           </div>
-        )}
 
-        {/* State 3: Mensaje de bienvenida */}
-        {state === "WELCOME" && (
-          <div className="relative z-10 text-center p-8 max-w-3xl">
-            <p className="font-crt text-2xl tracking-widest text-neutral-400 mb-6">
-              CH 69 - AV INPUT
-            </p>
-            <p className="font-crt text-3xl sm:text-4xl leading-snug text-pink-300">
-              ¡GRACIAS POR ENCENDER LA TV! POR REALIZAR Y CONTARME DE NUEVO EN
-              ESTA NUEVA EDICIÓN DE TUS PREMIACIONES CON ESTE NUEVO FORMATO, POR
-              SALVAR NUESTRAS PRÓSTATAS Y SER MADRE LUCHONA.
-            </p>
-            <p className="font-retro text-lg mt-6 text-white tracking-wide">
-              PRESIONA &apos;CAMBIAR CANAL&apos; PARA ENTRAR.
-            </p>
-          </div>
-        )}
-
-        {/* State 4: Countdown retro */}
-        {state === "COUNTDOWN" && (
-          <>
-            <div className="absolute inset-0 hero-grid retro-grid opacity-30 z-10" />
-            <div className="relative z-10 text-center">
-              <p className="font-crt text-9xl sm:text-[12rem] leading-none text-white neon-text">
-                {countdown}
-              </p>
+          {/* Franja inferior de la TV: marca, rejilla y LED de encendido */}
+          <div className="flex items-center justify-between px-3 pb-1 pt-3">
+            <span className="font-display text-sm font-medium tracking-[0.25em] text-mute">
+              CONDESA
+            </span>
+            <div className="tv-grille hidden h-2 w-28 rounded-full opacity-60 sm:block" />
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-[9px] tracking-[0.2em] text-dim">
+                {state === "OFF" ? "STBY" : "ON"}
+              </span>
+              <span className="tv-led" data-on={state !== "OFF"} />
             </div>
-          </>
-        )}
+          </div>
+        </div>
 
-        {/* State 5: Título principal con entrada CRT + glitch */}
-        {state === "TITLE" && <TitleScreen onEnter={() => setShowTerms(true)} />}
-      </div>
-
-      <div className="mt-8">
-        <RemoteControl
-          activeState={remoteActiveState}
-          enteredDigits={enteredDigits}
-          onPower={handlePower}
-          onDigit={handleDigit}
-          onChangeChannel={handleChangeChannel}
-        />
+        <div className="intro-remote">
+          <RemoteControl
+            activeState={remoteActiveState}
+            enteredDigits={enteredDigits}
+            onPower={handlePower}
+            onDigit={handleDigit}
+            onChangeChannel={handleChangeChannel}
+          />
+        </div>
       </div>
 
       {showTerms && (

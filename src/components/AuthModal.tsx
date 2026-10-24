@@ -1,7 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useRef, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { DiscordIcon, TwitchIcon } from "@/components/ui/Icons";
 
 type Provider = "twitch" | "discord";
 
@@ -16,6 +18,21 @@ interface AuthModalProps {
  */
 export default function AuthModal({ onLoginSuccess }: AuthModalProps) {
   const [pending, startTransition] = useTransition();
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      gsap
+        .timeline({ defaults: { ease: "power3.out" } })
+        .from(".auth-card", { opacity: 0, y: 30, scale: 0.97, duration: 0.6 })
+        .from(
+          ".auth-item",
+          { opacity: 0, y: 14, duration: 0.45, stagger: 0.09, clearProps: "transform,opacity" },
+          "-=0.3"
+        );
+    },
+    { scope: root }
+  );
 
   const handleLogin = (provider: Provider) => {
     startTransition(async () => {
@@ -31,48 +48,56 @@ export default function AuthModal({ onLoginSuccess }: AuthModalProps) {
 
   return (
     <section
+      ref={root}
       id="autenticacion"
-      className="min-h-[80vh] w-full flex flex-col items-center justify-center px-4 py-16"
+      className="flex min-h-[80vh] w-full flex-col items-center justify-center px-4 py-16"
     >
-      <div className="w-full max-w-md">
-        <div className="bg-neutral-900 border-2 border-pink-500/50 shadow-pink-glow p-8 rounded-sm text-center relative overflow-hidden">
-          {/* Header */}
-          <h2 className="font-pixel text-lg sm:text-xl text-pink-400 neon-text mb-6 tracking-wider">
-            [ IDENTIFICACIÓN DE USUARIO ]
-          </h2>
+      <div className="auth-card panel panel--accent w-full max-w-md overflow-hidden p-8 text-center sm:p-10">
+        <p className="auth-item eyebrow mb-3">Acceso seguro</p>
+        <h2 className="auth-item mb-4 font-display text-3xl font-medium tracking-wide text-cream">
+          IDENTIFICACIÓN DE USUARIO
+        </h2>
 
-          {/* Body message */}
-          <p className="font-sans text-neutral-400 text-base mb-10 leading-relaxed">
-            Inicia sesión para registrar tu voto de forma única y segura.
-          </p>
+        <p className="auth-item mb-8 text-sm leading-relaxed text-mute">
+          Inicia sesión para registrar tu voto de forma única y segura.
+        </p>
 
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            <button
-              onClick={() => handleLogin("twitch")}
-              disabled={pending}
-              className="w-full font-pixel text-sm px-6 py-4 bg-black text-pink-400 border-2 border-pink-500 rounded-sm hover:bg-pink-500 hover:text-black shadow-pink-glow transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 focus:ring-offset-neutral-900"
-            >
-              [ INICIAR CON TWITCH ]
-            </button>
+        <div className="space-y-4">
+          <button
+            onClick={() => handleLogin("twitch")}
+            disabled={pending}
+            className="auth-item btn w-full py-4"
+            style={
+              {
+                "--face": "#9146ff",
+                "--edge": "#4a1fa8",
+                "--fg": "#ffffff"
+              } as React.CSSProperties
+            }
+          >
+            <TwitchIcon size={18} />
+            INICIAR CON TWITCH
+          </button>
 
-            <button
-              onClick={() => handleLogin("discord")}
-              disabled={pending}
-              className="w-full font-pixel text-sm px-6 py-4 bg-black text-white border-2 border-white/40 rounded-sm hover:bg-white hover:text-black transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-neutral-900"
-            >
-              [ INICIAR CON DISCORD ]
-            </button>
-          </div>
-
-          {/* Footer note */}
-          <p className="mt-10 font-retro text-neutral-500 text-xs">
-            Acceso exclusivo para la comunidad
-          </p>
-
-          {/* CRT scanlines overlay */}
-          <div className="pointer-events-none absolute inset-0 crt-scanlines opacity-15" />
+          <button
+            onClick={() => handleLogin("discord")}
+            disabled={pending}
+            className="auth-item btn w-full py-4"
+            style={
+              {
+                "--face": "#5865f2",
+                "--edge": "#2b348f",
+                "--fg": "#ffffff"
+              } as React.CSSProperties
+            }
+          >
+            <DiscordIcon size={18} />
+            INICIAR CON DISCORD
+          </button>
         </div>
+
+        <div className="auth-item rule mb-4 mt-8" />
+        <p className="auth-item label text-[10px]">Acceso exclusivo para la comunidad</p>
       </div>
     </section>
   );

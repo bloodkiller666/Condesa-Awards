@@ -2,37 +2,36 @@
 
 import { gsap, useGSAP } from "@/lib/gsap";
 import CountdownTimer from "@/components/CountdownTimer";
+import { PixelTrophy } from "@/components/ui/Icons";
 import { useRef } from "react";
 
 export default function AlreadyVotedView() {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLElement>(null);
 
   useGSAP(
     () => {
-      if (!rootRef.current) return;
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.from(".av-card", { opacity: 0, y: 36, scale: 0.97, duration: 0.7 })
+        .from(
+          ".av-badge",
+          { scale: 0, rotate: -25, duration: 0.55, ease: "back.out(3)" },
+          "-=0.3"
+        )
+        .from(".stagger-item", { opacity: 0, y: 18, duration: 0.5, stagger: 0.1 }, "-=0.3");
 
-      const ctx = gsap.context(() => {
-        gsap.fromTo(
-          rootRef.current!,
-          { opacity: 0, y: 30 },
-          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }
-        );
-
-        gsap.fromTo(
-          rootRef.current!.querySelectorAll(".stagger-item"),
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.5,
-            ease: "power3.out",
-            stagger: 0.1,
-            delay: 0.2
-          }
-        );
-      }, rootRef);
-
-      return () => ctx.revert();
+      // Destello suave que recorre el panel.
+      gsap.fromTo(
+        ".av-shine",
+        { xPercent: -120 },
+        { xPercent: 320, duration: 1.6, delay: 0.9, ease: "power2.inOut" }
+      );
+      gsap.to(".av-badge", {
+        y: -5,
+        duration: 1.8,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
     },
     { scope: rootRef }
   );
@@ -41,45 +40,37 @@ export default function AlreadyVotedView() {
     <section
       ref={rootRef}
       id="already-voted"
-      className="min-h-[60vh] flex items-center justify-center px-4 py-16"
+      className="flex min-h-[60vh] items-center justify-center px-4 py-16"
     >
-      <div className="w-full max-w-3xl text-center">
-        {/* Header */}
+      <div className="av-card panel panel--accent relative w-full max-w-3xl overflow-hidden px-6 py-12 text-center sm:px-12">
+        <div className="av-shine pointer-events-none absolute inset-y-0 left-0 w-1/4 skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+        <div className="av-badge mx-auto mb-6 flex h-16 w-16 items-center justify-center bg-gold text-ink shadow-gold-glow">
+          <PixelTrophy size={32} className="text-ink" />
+        </div>
+
         <div className="stagger-item">
-          <h1 className="font-pixel text-2xl sm:text-3xl md:text-4xl text-pink-400 neon-text animate-pulse-glow mb-8 tracking-wider">
-            [ ¡VOTO REGISTRADO EXITOSAMENTE! ]
+          <p className="eyebrow mb-3">Votación completada</p>
+          <h1 className="mb-6 font-display text-3xl font-medium tracking-wide text-cream sm:text-5xl">
+            ¡VOTO REGISTRADO <span className="text-pink">EXITOSAMENTE!</span>
           </h1>
         </div>
 
-        {/* Body Message */}
         <div className="stagger-item">
-          <p className="font-retro text-lg sm:text-xl text-white mb-6 leading-relaxed">
+          <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-cream-2 sm:text-lg">
             Gracias por participar en los Condesa Awards 2026. Tu votación ha sido
             procesada correctamente.
           </p>
         </div>
 
-        {/* Subtitle */}
-        <div className="stagger-item">
-          <p className="font-retro text-base sm:text-lg text-neutral-400 mb-8">
-            Los ganadores se revelarán en:
-          </p>
+        <div className="stagger-item mb-6">
+          <div className="rule mb-6" />
+          <p className="label">Los ganadores se revelarán en:</p>
         </div>
 
-        {/* Countdown Timer */}
-        <div className="stagger-item mb-12">
+        <div className="stagger-item">
           <CountdownTimer />
         </div>
-
-        {/* Decorative divider */}
-        <div className="stagger-item flex items-center justify-center gap-4">
-          <div className="h-px w-24 bg-gradient-to-r from-transparent via-pink-500 to-transparent" />
-          <span className="font-pixel text-[9px] text-neutral-600">CONDESA AWARDS 2026</span>
-          <div className="h-px w-24 bg-gradient-to-r from-pink-500 via-pink-500 to-transparent" />
-        </div>
-
-        {/* CRT scanlines overlay */}
-        <div className="pointer-events-none absolute inset-0 crt-scanlines opacity-10" />
       </div>
     </section>
   );

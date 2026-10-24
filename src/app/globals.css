@@ -2,160 +2,650 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   CONDESA AWARDS — sistema de diseño
+   Dirección: "emisión de TV nocturna / arcade". Superficies de negro-violeta,
+   texto crema fósforo, magenta como acento único y oro solo para ganadores.
+   Sombras duras y marcos pixelados en lugar de resplandores difusos.
+   ========================================================================== */
+
+:root {
+  --ink: #07050b;
+  --ink-2: #0d0a15;
+  --ink-3: #14101f;
+  --ink-4: #1c1629;
+  --line: rgba(244, 236, 225, 0.1);
+  --line-strong: rgba(244, 236, 225, 0.2);
+  --cream: #f4ece1;
+  --mute: #a59cb6;
+  --pink: #ff4fa3;
+  --pink-deep: #a3125f;
+  --gold: #ffc857;
+  --cyan: #62e6ff;
+  --rgb-split: 0px;
+}
+
 @layer base {
   :root {
     color-scheme: dark;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
   body {
-    background: #050505;
+    background: var(--ink);
     overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
   ::selection {
-    background: #ec4899;
-    color: #050505;
+    background: var(--pink);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+  }
+
+  /* Scrollbar discreta */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-5, #271f38) transparent;
   }
 }
 
+/* --------------------------------------------------------------------------
+   Textura global de pantalla
+   -------------------------------------------------------------------------- */
+.screen-grain,
+.screen-lines {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.screen-grain {
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: grain-shift 0.8s steps(4, end) infinite;
+}
+
+.screen-lines {
+  opacity: 0.5;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.16) 0px,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-2%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-grain { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Utilidades CRT (se usan sobre pantallas / paneles)
+   -------------------------------------------------------------------------- */
 @layer utilities {
-  /* Efecto de scanlines CRT */
   .crt-scanlines {
     background-image: repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.28) 0px,
-      rgba(0, 0, 0, 0.28) 1px,
+      rgba(0, 0, 0, 0.3) 0px,
+      rgba(0, 0, 0, 0.3) 1px,
       transparent 1px,
       transparent 3px
     );
   }
 
-  /* Viñeta CRT */
   .crt-vignette {
     background: radial-gradient(
       ellipse at center,
-      transparent 55%,
-      rgba(0, 0, 0, 0.7) 100%
+      transparent 50%,
+      rgba(0, 0, 0, 0.75) 100%
     );
   }
 
-  /* Texto con glow neón (rosa) */
-  .neon-text {
+  /* Brillo de fósforo: sutil, no "neón de tutorial" */
+  .phosphor {
     text-shadow:
-      0 0 5px rgba(236, 72, 153, 0.8),
-      0 0 15px rgba(236, 72, 153, 0.5),
-      0 0 30px rgba(236, 72, 153, 0.35);
+      0 0 2px rgba(255, 79, 163, 0.6),
+      0 0 14px rgba(255, 79, 163, 0.35);
   }
 
-  /* Glow visual para cajas/bordes (rosa) */
-  .neon-box {
-    box-shadow:
-      0 0 15px rgba(236, 72, 153, 0.5),
-      inset 0 0 10px rgba(236, 72, 153, 0.2);
+  .phosphor-cream {
+    text-shadow:
+      0 0 2px rgba(244, 236, 225, 0.5),
+      0 0 16px rgba(244, 236, 225, 0.22);
   }
 
-  /* Rejilla retro rosa */
+  .phosphor-gold {
+    text-shadow:
+      0 0 2px rgba(255, 200, 87, 0.7),
+      0 0 22px rgba(255, 200, 87, 0.4);
+  }
+
+  /* Aberración cromática controlada por la variable --rgb-split (GSAP) */
+  .rgb-split {
+    text-shadow:
+      calc(var(--rgb-split) * -1) 0 0 rgba(98, 230, 255, 0.85),
+      var(--rgb-split) 0 0 rgba(255, 79, 163, 0.85);
+  }
+
   .retro-grid {
     background-image:
-      linear-gradient(rgba(236, 72, 153, 0.18) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(236, 72, 153, 0.18) 1px, transparent 1px);
+      linear-gradient(rgba(255, 79, 163, 0.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 79, 163, 0.16) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 
-  /* Botón arcade con brillo */
-  .pixel-btn {
-    image-rendering: pixelated;
+  .text-balance {
+    text-wrap: balance;
   }
 }
 
-/* Clase para el glitch (usada por GSAP/JS) */
-@keyframes glitch-shift {
-  0% {
-    clip-path: inset(0 0 0 0);
-    transform: translate(0);
+/* --------------------------------------------------------------------------
+   Tipografía de interfaz
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Sobre-título: mono, versalitas, con marcador pixel */
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-pink-400;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
   }
-  20% {
-    clip-path: inset(20% 0 40% 0);
-    transform: translate(-4px, 2px);
+
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
   }
-  40% {
-    clip-path: inset(60% 0 10% 0);
-    transform: translate(4px, -2px);
+
+  .eyebrow--plain::before {
+    display: none;
   }
-  60% {
-    clip-path: inset(30% 0 50% 0);
-    transform: translate(-2px, 1px);
+
+  .label {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-mute;
   }
-  80% {
-    clip-path: inset(70% 0 5% 0);
-    transform: translate(2px, -1px);
+
+  /* Regla con extremos en rombo (separador de secciones) */
+  .rule {
+    position: relative;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--line-strong) 20%,
+      var(--line-strong) 80%,
+      transparent
+    );
   }
-  100% {
-    clip-path: inset(0 0 0 0);
-    transform: translate(0);
+
+  .rule::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    background: var(--pink);
+    transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 0 0 12px rgba(255, 79, 163, 0.7);
   }
 }
 
-.glitch-layer {
-  position: absolute;
-  inset: 0;
-  background: inherit;
+/* --------------------------------------------------------------------------
+   Superficies
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Panel base: hairline + brillo superior + marcas de esquina (safe area) */
+  .panel {
+    --corner: rgba(244, 236, 225, 0.35);
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 40%),
+      var(--ink-2);
+    border: 1px solid var(--line);
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    z-index: 2;
+    background:
+      linear-gradient(var(--corner), var(--corner)) top left / 14px 2px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) top left / 2px 14px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) top right / 14px 2px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) top right / 2px 14px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) bottom left / 14px 2px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) bottom left / 2px 14px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) bottom right / 14px 2px no-repeat,
+      linear-gradient(var(--corner), var(--corner)) bottom right / 2px 14px no-repeat;
+  }
+
+  .panel--accent {
+    --corner: var(--pink);
+    border-color: rgba(255, 79, 163, 0.35);
+    box-shadow: 0 0 60px -24px rgba(255, 79, 163, 0.5);
+  }
+
+  .panel--gold {
+    --corner: var(--gold);
+    border-color: rgba(255, 200, 87, 0.4);
+    box-shadow: 0 0 70px -24px rgba(255, 200, 87, 0.45);
+  }
+
+  .panel--danger {
+    --corner: #ff5d6c;
+    border-color: rgba(255, 93, 108, 0.45);
+  }
+
+  /* Marco pixelado (esquinas "mordidas"), sin radios */
+  .px-frame {
+    --b: var(--line-strong);
+    position: relative;
+    margin: 2px;
+    background: var(--ink-3);
+    box-shadow:
+      0 -2px 0 0 var(--b),
+      0 2px 0 0 var(--b),
+      -2px 0 0 0 var(--b),
+      2px 0 0 0 var(--b);
+  }
+
+  .px-frame--accent {
+    --b: var(--pink);
+  }
+
+  .px-frame--gold {
+    --b: var(--gold);
+  }
+
+  /* Modales: fondo y posición */
+  .modal-backdrop {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255, 79, 163, 0.12), transparent 60%),
+      rgba(5, 3, 9, 0.86);
+    backdrop-filter: blur(6px);
+  }
 }
 
-.glitch-active {
-  animation: glitch-shift 0.35s steps(2, end) infinite;
+/* --------------------------------------------------------------------------
+   Botones arcade: cara + canto duro, se hunden al presionar
+   -------------------------------------------------------------------------- */
+@layer components {
+  .btn {
+    --face: var(--ink-4);
+    --edge: #000;
+    --fg: var(--cream);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1.4rem;
+    font-family: var(--font-display), monospace;
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg);
+    background: var(--face);
+    border: 0;
+    cursor: pointer;
+    user-select: none;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+      0 4px 0 0 var(--edge),
+      0 10px 22px -8px rgba(0, 0, 0, 0.7);
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease,
+      filter 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+      0 6px 0 0 var(--edge),
+      0 14px 26px -8px rgba(0, 0, 0, 0.7);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(3px);
+    filter: brightness(0.95);
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+      0 1px 0 0 var(--edge);
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    --face: var(--pink);
+    --edge: var(--pink-deep);
+    --fg: #1a0612;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.2),
+      0 6px 0 0 var(--edge),
+      0 16px 34px -8px rgba(255, 79, 163, 0.55);
+  }
+
+  .btn-gold {
+    --face: var(--gold);
+    --edge: #8a5f12;
+    --fg: #1d1304;
+  }
+
+  .btn-ghost {
+    --face: transparent;
+    --edge: rgba(0, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow:
+      inset 0 0 0 1px var(--line-strong),
+      0 4px 0 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    box-shadow:
+      inset 0 0 0 1px var(--pink),
+      0 6px 0 0 rgba(0, 0, 0, 0.5);
+    color: var(--pink);
+  }
+
+  .btn-sm {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+
+  .btn-lg {
+    padding: 1.05rem 2rem;
+    font-size: 1.1rem;
+  }
+
+  /* Enlace de texto con subrayado pixel */
+  .link-pixel {
+    font-family: var(--font-mono-ui), monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--pink);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 1px;
+    padding-bottom: 2px;
+    transition: background-size 0.25s ease, color 0.2s ease;
+  }
+
+  .link-pixel:hover {
+    color: var(--cream);
+    background-size: 100% 1px;
+  }
 }
 
-/* Estática CRT usada en la transición de revelado de ganador */
+/* --------------------------------------------------------------------------
+   Estática CRT (apagado / revelado)
+   -------------------------------------------------------------------------- */
 @keyframes static-noise {
-  0%,
-  100% {
-    background-position: 0 0;
-    opacity: 0.9;
-  }
-  10% {
-    background-position: -20% -10%;
-    opacity: 1;
-  }
-  20% {
-    background-position: 10% 30%;
-    opacity: 0.6;
-  }
-  30% {
-    background-position: -30% 20%;
-    opacity: 1;
-  }
-  40% {
-    background-position: 40% -30%;
-    opacity: 0.7;
-  }
-  50% {
-    background-position: -10% 40%;
-    opacity: 1;
-  }
-  60% {
-    background-position: 20% -20%;
-    opacity: 0.6;
-  }
-  70% {
-    background-position: -40% 10%;
-    opacity: 1;
-  }
-  80% {
-    background-position: 30% 20%;
-    opacity: 0.7;
-  }
-  90% {
-    background-position: -20% -30%;
-    opacity: 1;
-  }
+  0%   { background-position: 0 0; }
+  20%  { background-position: -37px 21px; }
+  40%  { background-position: 52px -33px; }
+  60%  { background-position: -18px -61px; }
+  80%  { background-position: 71px 14px; }
+  100% { background-position: 0 0; }
 }
 
 .crt-static {
-  background-image: repeating-conic-gradient(
-    rgba(255, 255, 255, 0.9) 0% 25%,
-    rgba(0, 0, 0, 0.9) 0% 50%
+  background-color: #1b1a1f;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='linear' slope='0'/><feFuncR type='linear' slope='1.7' intercept='-.25'/><feFuncG type='linear' slope='1.7' intercept='-.25'/><feFuncB type='linear' slope='1.7' intercept='-.25'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: static-noise 0.18s steps(2, end) infinite;
+}
+
+/* Barra de "tracking" que cruza la pantalla de señal perdida */
+@keyframes tracking-bar {
+  0%   { transform: translateY(-20%); }
+  100% { transform: translateY(520%); }
+}
+
+/* --------------------------------------------------------------------------
+   Carcasa de TV
+   -------------------------------------------------------------------------- */
+.tv {
+  position: relative;
+  border-radius: 26px;
+  padding: 18px 18px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 14%),
+    linear-gradient(145deg, #2c2736 0%, #181520 55%, #100d17 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.6),
+    0 2px 0 #000,
+    0 30px 70px -20px rgba(0, 0, 0, 0.9),
+    0 0 90px -30px rgba(255, 79, 163, 0.35);
+}
+
+.tv-bezel {
+  position: relative;
+  border-radius: 18px;
+  padding: 10px;
+  background: #050407;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 6px 18px rgba(0, 0, 0, 0.9);
+}
+
+.tv-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px / 18px;
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Reflejo curvo del cristal */
+.tv-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%),
+    radial-gradient(ellipse 80% 45% at 30% 0%, rgba(255, 255, 255, 0.05), transparent 70%);
+}
+
+.tv-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a2a30;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.tv-led[data-on="true"] {
+  background: #ff4f6a;
+  box-shadow: 0 0 10px 2px rgba(255, 79, 106, 0.7);
+}
+
+.tv-grille {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.55) 0 2px,
+    transparent 2px 6px
   );
-  background-size: 4px 4px;
-  animation: static-noise 0.15s steps(2, end) infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Control remoto
+   -------------------------------------------------------------------------- */
+.remote {
+  position: relative;
+  border-radius: 28px 28px 34px 34px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 12%),
+    linear-gradient(160deg, #2a2633 0%, #17141f 60%, #0f0c15 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.6),
+    0 2px 0 #000,
+    0 24px 50px -18px rgba(0, 0, 0, 0.9);
+}
+
+.key {
+  --kface: #3a3545;
+  --kedge: #07050b;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cream);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 50%),
+    var(--kface);
+  border-radius: 8px;
+  font-family: var(--font-mono-ui), monospace;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 3px 0 0 var(--kedge),
+    0 6px 10px -2px rgba(0, 0, 0, 0.6);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.2s, filter 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.key:hover:not(:disabled) {
+  filter: brightness(1.18);
+}
+
+.key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 0 var(--kedge);
+}
+
+.key:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.key--power {
+  --kface: #d62839;
+  --kedge: #5e0f18;
+}
+
+.key--pink {
+  --kface: #ff4fa3;
+  --kedge: #7a0c47;
+  color: #1a0612;
+}
+
+/* Tecla que se espera pulsar: respiración de aro */
+.key[data-hint="true"] {
+  animation: key-hint 1.4s ease-in-out infinite;
+}
+
+@keyframes key-hint {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 3px 0 0 var(--kedge),
+      0 0 0 0 rgba(255, 79, 163, 0.7);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 3px 0 0 var(--kedge),
+      0 0 0 7px rgba(255, 79, 163, 0);
+  }
+}
+
+.lcd {
+  background: #0a0710;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Utilidades de animación varias
+   -------------------------------------------------------------------------- */
+@keyframes sweep-shine {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to   { transform: translateX(260%) skewX(-20deg); }
+}
+
+@keyframes scan-down {
+  0%   { top: -20%; }
+  100% { top: 120%; }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crt-static,
+  .key[data-hint="true"] {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }

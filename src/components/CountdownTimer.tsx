@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "@/lib/gsap";
+import { prefersReducedMotion } from "@/lib/fx";
 
 const REVEAL_DATE = new Date("2026-12-31T23:59:59").getTime();
 
@@ -28,6 +30,39 @@ function calculateTimeLeft(): TimeLeft {
   return { days, hours, minutes, seconds, isExpired: false };
 }
 
+/** Celda del reloj: el dígito cae con un pequeño golpe cuando cambia. */
+function Cell({ value, label }: { value: string; label: string }) {
+  const digits = useRef<HTMLSpanElement>(null);
+  const prev = useRef(value);
+
+  useEffect(() => {
+    if (prev.current === value) return;
+    prev.current = value;
+    if (!digits.current || prefersReducedMotion()) return;
+    gsap.fromTo(
+      digits.current,
+      { y: -14, opacity: 0.2 },
+      { y: 0, opacity: 1, duration: 0.35, ease: "back.out(2.5)" }
+    );
+  }, [value]);
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="px-frame min-w-[4.5rem] overflow-hidden px-3 py-3 sm:min-w-[6.5rem] sm:px-5 sm:py-4">
+        <span
+          ref={digits}
+          className="phosphor-cream block text-center font-crt text-5xl leading-none text-cream sm:text-7xl"
+        >
+          {value}
+        </span>
+        {/* Línea de bisagra del reloj */}
+        <span className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-black/60" />
+      </div>
+      <span className="label text-[10px]">{label}</span>
+    </div>
+  );
+}
+
 export default function CountdownTimer() {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft);
 
@@ -42,22 +77,18 @@ export default function CountdownTimer() {
   const format = (n: number) => String(n).padStart(2, "0");
 
   return (
-    <div className="font-pixel text-2xl sm:text-3xl md:text-4xl text-center text-pink-400 neon-text tracking-widest animate-pulse-glow">
-      [
-      {" "}
-      <span className="text-white">{format(timeLeft.days)}</span>
-      <span className="text-pink-400">d</span>
-      {" : "}
-      <span className="text-white">{format(timeLeft.hours)}</span>
-      <span className="text-pink-400">h</span>
-      {" : "}
-      <span className="text-white">{format(timeLeft.minutes)}</span>
-      <span className="text-pink-400">m</span>
-      {" : "}
-      <span className="text-white">{format(timeLeft.seconds)}</span>
-      <span className="text-pink-400">s</span>
-      {" "}
-      ]
+    <div
+      className="flex items-start justify-center gap-2 sm:gap-4"
+      role="timer"
+      aria-label="Tiempo restante para revelar a los ganadores"
+    >
+      <Cell value={format(timeLeft.days)} label="Días" />
+      <span className="mt-4 font-crt text-4xl text-pink-400 animate-blink sm:mt-6 sm:text-5xl">:</span>
+      <Cell value={format(timeLeft.hours)} label="Horas" />
+      <span className="mt-4 font-crt text-4xl text-pink-400 animate-blink sm:mt-6 sm:text-5xl">:</span>
+      <Cell value={format(timeLeft.minutes)} label="Min" />
+      <span className="mt-4 font-crt text-4xl text-pink-400 animate-blink sm:mt-6 sm:text-5xl">:</span>
+      <Cell value={format(timeLeft.seconds)} label="Seg" />
     </div>
   );
 }

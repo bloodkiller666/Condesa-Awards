@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
+import { CheckIcon, CloseIcon, WarningIcon } from "@/components/ui/Icons";
 import type { SubmitVotesResult } from "@/app/actions/vote";
 
 interface SubmissionModalProps {
@@ -194,45 +195,39 @@ export default function SubmissionModal({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+      className="modal-backdrop fixed inset-0 z-[60] overflow-y-auto p-4"
       onClick={view === "loading" ? undefined : handleClose}
+      role="dialog"
+      aria-modal="true"
     >
-      <div className="flex items-center justify-center min-h-full">
+      <div className="flex min-h-full items-center justify-center">
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-full max-w-md bg-neutral-900 border-2 rounded-sm p-6 shadow-pink-glow ${
-            isError
-              ? "border-red-500/70"
-              : isSuccess
-                ? "border-pink-500/80"
-                : "border-pink-500/60"
+          className={`panel relative w-full max-w-md p-6 sm:p-8 ${
+            isError ? "panel--danger" : "panel--accent"
           }`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-pixel text-xs text-white">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="font-display text-lg font-medium tracking-[0.14em]">
               {isError ? (
-                <span className="text-red-400">ERROR DE TRANSMISIÓN</span>
+                <span className="text-[#ff7a87]">ERROR DE TRANSMISIÓN</span>
               ) : isSuccess ? (
-                <span className="text-pink-400 neon-text">VOTO REGISTRADO</span>
+                <span className="text-pink-400">VOTO REGISTRADO</span>
               ) : (
-                <>
+                <span className="text-cream">
                   ENVIANDO VOTACIÓN
-                  <span className="text-pink-400 animate-pulse">...</span>
-                </>
+                  <span className="animate-blink text-pink-400">...</span>
+                </span>
               )}
             </h3>
-            {view === "loading" ? (
-              <span className="font-pixel text-[9px] text-neutral-500">
-                {pctText}%
-              </span>
-            ) : (
+            {view !== "loading" && (
               <button
                 onClick={handleClose}
-                className="font-pixel text-xs text-neutral-400 hover:text-white transition-colors"
+                className="text-mute transition-colors hover:text-cream"
                 aria-label="Cerrar"
               >
-                [X]
+                <CloseIcon size={14} />
               </button>
             )}
           </div>
@@ -240,86 +235,75 @@ export default function SubmissionModal({
           {view === "loading" && (
             <div>
               {/* % gigante estilo terminal */}
-              <div className="text-center mb-4">
-                <span className="font-pixel text-4xl text-pink-400 neon-text">
+              <div className="mb-5 text-center">
+                <span className="phosphor font-crt text-8xl leading-none text-pink-400">
                   {pctText}
-                  <span className="text-white">%</span>
+                  <span className="text-cream">%</span>
                 </span>
               </div>
 
-              {/* Barra de progreso animada */}
-              <div className="h-4 bg-neutral-800 border border-white/10 overflow-hidden relative">
+              {/* Barra de progreso segmentada */}
+              <div className="relative h-5 overflow-hidden bg-ink-4 p-[3px]">
                 <div
-                  className="h-full bg-pink-500 shadow-pink-glow transition-[width] duration-75 ease-linear"
-                  style={{ width: `${percent}%` }}
+                  className="h-full bg-pink transition-[width] duration-75 ease-linear"
+                  style={{
+                    width: `${percent}%`,
+                    backgroundImage:
+                      "repeating-linear-gradient(90deg, transparent 0 9px, rgba(7,5,11,0.55) 9px 11px)"
+                  }}
                 />
-                <div className="pointer-events-none absolute inset-0 crt-scanlines opacity-30" />
               </div>
 
               {/* Mensaje dinámico */}
-              <p className="mt-5 font-retro text-sm text-neutral-300 text-center min-h-[1.25rem]">
+              <p className="mt-5 min-h-[1.25rem] text-center font-mono text-xs uppercase tracking-[0.16em] text-mute">
                 {statusText(progress)}
-                <span className="text-pink-400 animate-pulse">▌</span>
+                <span className="animate-blink text-pink-400">▌</span>
               </p>
             </div>
           )}
 
           {isSuccess && (
             <div className="text-center">
-              <div className="font-pixel text-4xl text-pink-400 neon-text mb-4 animate-pulse-glow">
-                ✓
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center bg-pink text-ink">
+                <CheckIcon size={32} />
               </div>
-              <p className="font-retro text-lg text-white mb-2">
+              <p className="mb-2 font-display text-2xl font-medium text-cream">
                 ¡Voto registrado exitosamente!
               </p>
-              <p className="font-retro text-xs text-neutral-500 mb-6">
+              <p className="mb-7 text-sm text-mute">
                 Gracias por participar en los CONDESA AWARDS 2026.
               </p>
-              <button
-                onClick={handleClose}
-                className="font-pixel text-[10px] px-6 py-3 bg-black text-pink-400 border-2 border-pink-500 rounded-sm shadow-pink-glow hover:bg-pink-500 hover:text-black transition-colors"
-              >
-                [ CERRAR ]
+              <button onClick={handleClose} className="btn btn-primary">
+                CERRAR
               </button>
             </div>
           )}
 
           {isError && (
             <div className="text-center">
-              <div className="font-pixel text-3xl text-red-400 animate-flicker mb-4">
-                ⚠
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center bg-[#ff5d6c] text-ink">
+                <WarningIcon size={30} />
               </div>
-              <p className="font-retro text-sm text-white mb-2">
+              <p className="mb-2 text-sm leading-relaxed text-cream">
                 Error al guardar los votos. Comprueba tu conexión o intentalo de
                 nuevo.
               </p>
               {serverError && (
-                <p className="font-retro text-[11px] text-neutral-500 mb-4">
-                  {serverError}
-                </p>
+                <p className="mb-4 font-mono text-[11px] text-dim">{serverError}</p>
               )}
-              <div className="flex gap-3 justify-center mt-2 flex-wrap">
-                <button
-                  onClick={handleRetry}
-                  className="font-pixel text-[9px] px-5 py-3 bg-black text-pink-400 border-2 border-pink-500 rounded-sm shadow-pink-glow hover:bg-pink-500 hover:text-black transition-colors"
-                >
-                  [ REINTENTAR ]
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <button onClick={handleRetry} className="btn btn-primary btn-sm">
+                  REINTENTAR
                 </button>
-                <button
-                  onClick={handleClose}
-                  className="font-pixel text-[9px] px-5 py-3 bg-black text-neutral-300 border border-white/30 rounded-sm hover:border-white hover:text-white transition-colors"
-                >
-                  [ CANCELAR ]
+                <button onClick={handleClose} className="btn btn-ghost btn-sm">
+                  CANCELAR
                 </button>
               </div>
-              <p className="mt-4 font-retro text-[10px] text-neutral-600">
+              <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.14em] text-dim">
                 Tus selecciones se conservan. Puedes reintentar cuando quieras.
               </p>
             </div>
           )}
-
-          {/* Overlays CRT */}
-          <div className="pointer-events-none absolute inset-0 crt-scanlines opacity-20" />
         </div>
       </div>
     </div>

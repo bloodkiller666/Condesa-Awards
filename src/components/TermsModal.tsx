@@ -1,5 +1,8 @@
 "use client";
 
+import { useRef } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
+
 interface TermsModalProps {
   onAccept: () => void;
   onReject: () => void;
@@ -19,7 +22,49 @@ function stopIntroAudio() {
   }
 }
 
+const TERMS: { title: string; body: string }[] = [
+  {
+    title: "AUTENTICACIÓN",
+    body: "Se utilizan tokens de sesión OAuth de Twitch y Discord para verificar tu identidad. Estos tokens se almacenan únicamente como cookies de sesión HTTP-only."
+  },
+  {
+    title: "VERIFICACIÓN DE VOTO",
+    body: "Cada voto se registra con tu ID de usuario único para prevenir duplicados. No se almacena información personal adicional."
+  },
+  {
+    title: "GALLETAS (COOKIES)",
+    body: "Se usan cookies técnicas estrictamente necesarias para mantener tu sesión de voto. No se utilizan cookies de tracking ni analytics de terceros."
+  },
+  {
+    title: "REVOCACIÓN",
+    body: "Puedes revocar el acceso desconectando la aplicación en la configuración de Twitch/Discord. Tu voto permanecerá anónimo en los resultados públicos."
+  }
+];
+
 export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
+  const root = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.from(".terms-card", {
+        opacity: 0,
+        y: 28,
+        scale: 0.97,
+        duration: 0.45,
+        ease: "power3.out"
+      });
+      gsap.from(".terms-item", {
+        opacity: 0,
+        x: -14,
+        duration: 0.4,
+        stagger: 0.08,
+        delay: 0.25,
+        ease: "power2.out"
+      });
+    },
+    { scope: root }
+  );
+
   const handleAccept = () => {
     stopIntroAudio();
     onAccept();
@@ -31,47 +76,56 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
-      <div className="border-2 border-pink-500/50 p-8 bg-black w-full max-w-lg shadow-[0_0_15px_rgba(236,72,153,0.3)]">
-        <h2 className="text-2xl font-pixel text-pink-500 mb-6 tracking-wider">[ AVISO LEGAL Y COOKIES ]</h2>
-        <div className="text-neutral-300 font-pixel text-sm mb-6 max-h-64 overflow-y-auto pr-2 custom-scrollbar leading-relaxed">
-          <p className="mb-4">
-            AL ACCEDER A ESTE SISTEMA DE VOTACIÓN, ACEPTAS LOS SIGUIENTES TÉRMINOS:
-          </p>
-          <p className="mb-3">
-            1. AUTENTICACIÓN: Se utilizan tokens de sesión OAuth de Twitch y Discord para verificar
-            tu identidad. Estos tokens se almacenan únicamente como cookies de sesión HTTP-only.
-          </p>
-          <p className="mb-3">
-            2. VERIFICACIÓN DE VOTO: Cada voto se registra con tu ID de usuario único para prevenir
-            duplicados. No se almacena información personal adicional.
-          </p>
-          <p className="mb-3">
-            3. GALLETAS (COOKIES): Se usan cookies técnicas estrictamente necesarias para mantener tu
-            sesión de voto. No se utilizan cookies de tracking ni analytics de terceros.
-          </p>
-          <p className="mb-3">
-            4. REVOCACIÓN: Puedes revocar el acceso desconectando la aplicación en la configuración
-            de Twitch/Discord. Tu voto permanecerá anónimo en los resultados públicos.
-          </p>
-          <p className="text-pink-400">
-            [ CONDESA AWARDS 2026 - SISTEMA OFICIAL DE VOTACIÓN ]
-          </p>
-        </div>
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={handleReject}
-            className="text-neutral-500 hover:text-red-500 font-pixel text-sm transition-colors"
-          >
-            [ RECHAZAR ]
+    <div
+      ref={root}
+      className="modal-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="terms-title"
+    >
+      <div className="terms-card panel panel--accent w-full max-w-xl p-6 sm:p-8">
+        <p className="eyebrow mb-2">Antes de continuar</p>
+        <h2
+          id="terms-title"
+          className="mb-5 font-display text-2xl font-medium tracking-wide text-cream sm:text-3xl"
+        >
+          AVISO LEGAL Y COOKIES
+        </h2>
+
+        <p className="label mb-4">
+          Al acceder a este sistema de votación, aceptas los siguientes términos:
+        </p>
+
+        <ol className="mb-6 max-h-64 space-y-4 overflow-y-auto pr-3">
+          {TERMS.map((t, i) => (
+            <li key={t.title} className="terms-item flex gap-4">
+              <span className="mt-0.5 font-mono text-xs font-semibold text-pink-400">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <p className="mb-1 font-display text-sm font-medium tracking-widest text-cream">
+                  {t.title}
+                </p>
+                <p className="text-sm leading-relaxed text-mute">{t.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="rule mb-5" />
+
+        <div className="flex flex-col-reverse items-stretch justify-end gap-3 sm:flex-row sm:items-center">
+          <button onClick={handleReject} className="btn btn-ghost btn-sm">
+            RECHAZAR
           </button>
-          <button
-            onClick={handleAccept}
-            className="text-pink-500 hover:text-black hover:bg-pink-500 border border-pink-500 px-6 py-2 font-pixel text-sm transition-colors"
-          >
-            [ ACEPTAR Y CONTINUAR ]
+          <button onClick={handleAccept} className="btn btn-primary">
+            ACEPTAR Y CONTINUAR
           </button>
         </div>
+
+        <p className="mt-5 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-dim">
+          Condesa Awards 2026 · Sistema oficial de votación
+        </p>
       </div>
     </div>
   );
