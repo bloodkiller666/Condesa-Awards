@@ -2,8 +2,9 @@
 
 import { useCallback, useRef, useState } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { prefersReducedMotion, scrambleText } from "@/lib/fx";
+import { scrambleText } from "@/lib/fx";
 import ClipModal from "@/components/ClipModal";
+import WinnerReveal from "@/components/WinnerReveal";
 import { PixelTrophy, PlayIcon } from "@/components/ui/Icons";
 import type { CategoryResult, CategoryWithResult, Nominee } from "@/types";
 
@@ -12,32 +13,6 @@ interface WinnersViewProps {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
-
-/* ------------------------------------------------------------------ */
-/* Efectos                                                             */
-/* ------------------------------------------------------------------ */
-
-/** Confeti pixelado (cuadrados rosa / oro / cian que caen y giran). */
-function burstConfetti(container: HTMLElement) {
-  if (prefersReducedMotion()) return;
-  const colors = ["#ff4fa3", "#ffc857", "#62e6ff", "#f4ece1", "#ff9acd"];
-  for (let i = 0; i < 46; i++) {
-    const piece = document.createElement("div");
-    const size = 4 + Math.round(Math.random() * 3) * 2;
-    piece.style.cssText = `position:absolute;top:-12px;left:${Math.random() * 100}%;width:${size}px;height:${size * (Math.random() > 0.6 ? 2 : 1)}px;background:${colors[i % colors.length]};z-index:30;pointer-events:none;`;
-    container.appendChild(piece);
-    gsap.to(piece, {
-      y: container.offsetHeight + 30,
-      x: `+=${(Math.random() - 0.5) * 160}`,
-      rotation: Math.random() * 720 - 360,
-      opacity: 0,
-      duration: 1.6 + Math.random() * 1.4,
-      ease: "power1.in",
-      delay: Math.random() * 0.4,
-      onComplete: () => piece.remove()
-    });
-  }
-}
 
 /* ------------------------------------------------------------------ */
 /* Filas de resultados                                                 */
@@ -184,7 +159,6 @@ function CategoryCard({
   cat,
   index,
   expanded,
-  glitching,
   onReveal,
   onCollapse,
   onOpenClip
@@ -192,7 +166,6 @@ function CategoryCard({
   cat: CategoryWithResult;
   index: number;
   expanded: boolean;
-  glitching: boolean;
   onReveal: (cat: CategoryWithResult) => void;
   onCollapse: (id: string) => void;
   onOpenClip: (
@@ -206,7 +179,6 @@ function CategoryCard({
   const sorted = [...cat.results].sort((a, b) => b.vote_count - a.vote_count);
   const winner = sorted[0] && sorted[0].vote_count > 0 ? sorted[0] : null;
   const isExpanded = expanded;
-  const isGlitching = glitching;
   const totalVotes = sorted.reduce((s, r) => s + r.vote_count, 0);
 
   // Entrada de la tarjeta (stagger manejado por delay según índice).
@@ -277,13 +249,6 @@ function CategoryCard({
         isExpanded && winner ? "panel--gold" : ""
       }`}
     >
-      {/* Halo de escáner mientras se desencripta */}
-      {isGlitching && (
-        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-          <div className="absolute left-0 right-0 h-10 bg-pink/25 blur-sm [animation:scan-down_0.6s_linear_infinite]" />
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="font-crt text-5xl leading-none text-white/[0.14] sm:text-6xl">
@@ -303,21 +268,23 @@ function CategoryCard({
           winner ? (
             <button
               onClick={() => onReveal(cat)}
-              disabled={isGlitching}
               className="btn btn-primary relative overflow-hidden"
             >
-              <span className="relative z-10">
-                {isGlitching ? "DESENCRIPTANDO" : "REVELAR GANADOR"}
-              </span>
+              <span className="relative z-10">REVELAR GANADOR</span>
               <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent [animation:sweep-shine_2.6s_ease-in-out_infinite]" />
             </button>
           ) : (
             <span className="label border border-line px-3 py-2">Sin votos</span>
           )
         ) : (
-          <button onClick={() => onCollapse(cat.id)} className="btn btn-ghost btn-sm">
-            OCULTAR
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => onReveal(cat)} className="btn btn-ghost btn-sm">
+              REVER REVELACIÓN
+            </button>
+            <button onClick={() => onCollapse(cat.id)} className="btn btn-ghost btn-sm">
+              OCULTAR
+            </button>
+          </div>
         )}
       </div>
 
@@ -364,14 +331,6 @@ function CategoryCard({
           />
         </>
       )}
-
-      {/* Capa de estática CRT durante el glitch */}
-      {isGlitching && (
-        <div
-          data-reveal-static
-          className="pointer-events-none absolute inset-0 z-10 crt-static opacity-0"
-        />
-      )}
     </div>
   );
 }
@@ -385,17 +344,17 @@ function CategoryCard({
  *
  * - Título con aberración cromática + subtítulo decodificado.
  * - Cada categoría es una tarjeta "sellada".
- * - Al pulsar REVELAR GANADOR: glitch GSAP (jitter + estática CRT + línea de
- *   escáner) y la tarjeta se expande EN SITIO.
- * - El ganador aparece con trofeo dorado, rayos giratorios, scramble del
- *   nombre y confeti pixelado.
+ * - Al pulsar REVELAR GANADOR se abre <WinnerReveal />: secuencia
+ *   cinematográfica a pantalla completa (redoble, clímax, confeti).
+ * - Al continuar, la tarjeta se expande en sitio con el ganador y resultados.
  * - Tabla de posiciones con barras y contadores animados.
  * - Cada nominado conserva su botón "VER CLIP" (ClipModal).
  */
 export default function WinnersView({ categories }: WinnersViewProps) {
   const rootRef = useRef<HTMLElement>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [glitching, setGlitching] = useState<string | null>(null);
+  /** Categoría cuyo revelado cinematográfico está en pantalla. */
+  const [revealId, setRevealId] = useState<string | null>(null);
   const [clip, setClip] = useState<{
     mode: "preview" | "winner";
     nominee: Nominee;
@@ -432,9 +391,8 @@ export default function WinnersView({ categories }: WinnersViewProps) {
   );
 
   const handleReveal = useCallback((cat: CategoryWithResult) => {
-    if (expanded[cat.id]) return;
-    setGlitching((prev) => (prev ? prev : cat.id));
-  }, [expanded]);
+    setRevealId((prev) => prev ?? cat.id);
+  }, []);
 
   const handleCollapse = useCallback((id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: false }));
@@ -473,63 +431,10 @@ export default function WinnersView({ categories }: WinnersViewProps) {
     { scope: rootRef, dependencies: [] }
   );
 
-  // Efecto glitch al revelar: jitter + estática + escáner, luego expande.
-  useGSAP(
-    () => {
-      if (!glitching) return;
-      const card = document.querySelector<HTMLElement>(
-        `[data-cat-id="${glitching}"]`
-      );
-      if (!card) {
-        setGlitching(null);
-        return;
-      }
-      const staticLayer = card.querySelector<HTMLElement>(
-        "[data-reveal-static]"
-      );
-
-      const tl = gsap.timeline({
-        onComplete: () => {
-          setExpanded((prev) => ({ ...prev, [glitching]: true }));
-          setGlitching(null);
-          // Confeti épico justo al terminar el glitch.
-          burstConfetti(card);
-        }
-      });
-
-      // Jitter / glitch de la tarjeta.
-      tl.to(card, {
-        x: -6,
-        duration: 0.05,
-        repeat: 7,
-        yoyo: true,
-        ease: "steps(1)"
-      });
-
-      // Fogonazo de estática CRT.
-      if (staticLayer) {
-        tl.fromTo(
-          staticLayer,
-          { opacity: 0 },
-          { opacity: 0.85, duration: 0.09, yoyo: true, repeat: 6 },
-          0
-        ).to(staticLayer, { opacity: 0, duration: 0.08 });
-      }
-
-      // Flash global breve.
-      tl.fromTo(
-        card,
-        { filter: "brightness(2.2) saturate(2)" },
-        { filter: "brightness(1) saturate(1)", duration: 0.35 },
-        ">-0.1"
-      );
-
-      return () => {
-        tl.kill();
-      };
-    },
-    { dependencies: [glitching] }
-  );
+  const revealCat = categories.find((c) => c.id === revealId) ?? null;
+  const revealWinner = revealCat
+    ? [...revealCat.results].sort((a, b) => b.vote_count - a.vote_count).find((r) => r.vote_count > 0) ?? null
+    : null;
 
   return (
     <section
@@ -563,7 +468,6 @@ export default function WinnersView({ categories }: WinnersViewProps) {
             cat={cat}
             index={i}
             expanded={!!expanded[cat.id]}
-            glitching={glitching === cat.id}
             onReveal={handleReveal}
             onCollapse={handleCollapse}
             onOpenClip={openClipFor}
@@ -574,6 +478,22 @@ export default function WinnersView({ categories }: WinnersViewProps) {
       <p className="mt-12 text-center font-mono text-[11px] uppercase tracking-[0.3em] text-dim">
         — Fin de la transmisión · Condesa Awards 2026 —
       </p>
+
+      {revealCat && revealWinner && (
+        <WinnerReveal
+          key={revealCat.id}
+          categoryName={revealCat.name}
+          categoryIcon={revealCat.icon}
+          index={categories.findIndex((c) => c.id === revealCat.id)}
+          results={revealCat.results}
+          winner={revealWinner}
+          onWatchClip={() => openClipFor(revealCat, revealWinner, revealWinner)}
+          onClose={() => {
+            setExpanded((prev) => ({ ...prev, [revealCat.id]: true }));
+            setRevealId(null);
+          }}
+        />
+      )}
 
       <ClipModal
         mode={clip?.mode ?? "preview"}
