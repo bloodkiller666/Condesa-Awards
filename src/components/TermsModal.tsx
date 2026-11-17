@@ -8,20 +8,6 @@ interface TermsModalProps {
   onReject: () => void;
 }
 
-/**
- * Kill switch global de audio: pausa y rebobina la música de la intro para
- * que los clips de Twitch se reproduzcan con audio limpio.
- */
-function stopIntroAudio() {
-  const intro = (
-    window as unknown as { __introAudio?: HTMLAudioElement }
-  ).__introAudio;
-  if (intro) {
-    intro.pause();
-    intro.currentTime = 0;
-  }
-}
-
 const TERMS: { title: string; body: string }[] = [
   {
     title: "AUTENTICACIÓN",
@@ -65,16 +51,6 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
     { scope: root }
   );
 
-  const handleAccept = () => {
-    stopIntroAudio();
-    onAccept();
-  };
-
-  const handleReject = () => {
-    stopIntroAudio();
-    onReject();
-  };
-
   return (
     <div
       ref={root}
@@ -115,10 +91,10 @@ export default function TermsModal({ onAccept, onReject }: TermsModalProps) {
         <div className="rule mb-5" />
 
         <div className="flex flex-col-reverse items-stretch justify-end gap-3 sm:flex-row sm:items-center">
-          <button onClick={handleReject} className="btn btn-ghost btn-sm">
+          <button onClick={onReject} className="btn btn-ghost btn-sm">
             RECHAZAR
           </button>
-          <button onClick={handleAccept} className="btn btn-primary">
+          <button onClick={onAccept} className="btn btn-primary">
             ACEPTAR Y CONTINUAR
           </button>
         </div>

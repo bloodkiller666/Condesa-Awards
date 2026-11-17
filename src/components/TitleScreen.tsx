@@ -7,6 +7,8 @@ import { ArrowIcon, PixelTrophy } from "@/components/ui/Icons";
 
 interface TitleScreenProps {
   onEnter: () => void;
+  /** La imagen ya llega estabilizada por la transición: sin entrada letra por letra. */
+  settled?: boolean;
 }
 
 /** Divide un texto en palabras/letras animables (accesible vía aria-label). */
@@ -38,7 +40,7 @@ const STARS = Array.from({ length: 26 }, (_, i) => ({
  * Secuencia GSAP: encendido CRT -> letras entran en cascada -> aberración
  * cromática (RGB split) con ráfagas de glitch periódicas -> subtítulo -> CTA.
  */
-export default function TitleScreen({ onEnter }: TitleScreenProps) {
+export default function TitleScreen({ onEnter, settled = false }: TitleScreenProps) {
   const root = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const cta = useRef<HTMLButtonElement>(null);
@@ -65,6 +67,9 @@ export default function TitleScreen({ onEnter }: TitleScreenProps) {
 
       if (reduced) return;
 
+      if (settled) {
+        gsap.set(title.current, { "--rgb-split": "1.5px" });
+      } else {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.from(".title-eyebrow", { opacity: 0, y: 14, duration: 0.5 })
         .from(
@@ -88,6 +93,7 @@ export default function TitleScreen({ onEnter }: TitleScreenProps) {
         .from(".title-divider", { scaleX: 0, opacity: 0, duration: 0.6 }, "-=0.6")
         .from(".title-trophy", { scale: 0, rotate: -20, duration: 0.5, ease: "back.out(3)" }, "-=0.4")
         .from(cta.current, { opacity: 0, y: 22, duration: 0.5 }, "-=0.2");
+      }
 
       // Ráfagas de glitch espaciadas.
       const loop = gsap.delayedCall(3.6, function repeat() {
@@ -133,7 +139,7 @@ export default function TitleScreen({ onEnter }: TitleScreenProps) {
       ))}
 
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
-        <p className="title-eyebrow eyebrow eyebrow--plain mb-5 text-mute">
+        <p className="title-eyebrow eyebrow eyebrow--plain mb-[2.4cqh] text-mute">
           — EST. 2026 · PREMIACIÓN OFICIAL —
         </p>
 
@@ -142,21 +148,29 @@ export default function TitleScreen({ onEnter }: TitleScreenProps) {
           aria-label="CONDESA AWARDS 2026"
           className="rgb-split font-display font-medium leading-[0.95] text-cream [perspective:700px]"
         >
-          <span className="block text-4xl sm:text-6xl lg:text-7xl tracking-wide">
+          <span className="block text-[clamp(1.5rem,min(12cqh,7cqw),4.5rem)] tracking-wide">
             <SplitChars text="CONDESA AWARDS" />
           </span>
-          <span className="mt-1 block text-5xl text-pink sm:text-7xl lg:text-8xl tracking-[0.12em] [text-shadow:0_0_30px_rgba(255,79,163,0.45)]">
+          <span className="mt-1 block text-[clamp(2rem,min(18cqh,11cqw),6rem)] text-pink tracking-[0.12em] [text-shadow:0_0_30px_rgba(255,79,163,0.45)]">
             <SplitChars text="2026" />
           </span>
         </h1>
 
-        <div className="my-6 flex w-full max-w-md items-center gap-4">
+        <div className="my-[3cqh] flex w-full max-w-md items-center gap-4">
           <span className="title-divider h-px flex-1 origin-right bg-gradient-to-r from-transparent to-pink/70" />
           <PixelTrophy size={22} className="title-trophy text-gold" />
           <span className="title-divider h-px flex-1 origin-left bg-gradient-to-l from-transparent to-pink/70" />
         </div>
 
-        <button ref={cta} onClick={onEnter} className="btn btn-primary btn-lg">
+        <button
+          ref={cta}
+          onClick={onEnter}
+          className="btn btn-primary"
+          style={{
+            padding: "clamp(0.6rem,3.2cqh,1.05rem) clamp(1.2rem,4cqw,2rem)",
+            fontSize: "clamp(0.8rem,3.6cqh,1.1rem)"
+          }}
+        >
           PRESIONA AQUÍ PARA ENTRAR
           <ArrowIcon size={16} />
         </button>

@@ -36,6 +36,8 @@ export default function MainApp({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [introSeen, setIntroSeen] = useState(false);
+  /** La intro sigue montada mientras se disuelve, aunque introSeen ya sea true. */
+  const [showIntro, setShowIntro] = useState(true);
   const [showAuthView, setShowAuthView] = useState(false);
   const [showLoginSuccess, setShowLoginSuccess] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -52,6 +54,7 @@ export default function MainApp({
         yPercent: -100,
         opacity: 0,
         duration: 0.7,
+        delay: 0.6,
         ease: "power3.out"
       });
     },
@@ -61,7 +64,9 @@ export default function MainApp({
   // Check localStorage and URL params on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIntroSeen(localStorage.getItem("condesa_intro_seen") === "true");
+      const seen = localStorage.getItem("condesa_intro_seen") === "true";
+      setIntroSeen(seen);
+      if (seen) setShowIntro(false);
 
       // Check for login success from OAuth callback redirect
       const loginSuccess = searchParams.get("login_success");
@@ -102,7 +107,9 @@ export default function MainApp({
 
   return (
     <>
-      {!introSeen && <HeroIntro onEnter={handleIntroComplete} />}
+      {showIntro && (
+        <HeroIntro onEnter={handleIntroComplete} onExited={() => setShowIntro(false)} />
+      )}
 
       {/* Fondo animado (se muestra durante la intro también, detrás) */}
       <BackgroundVideo opacity={0.3} dim={0.55} />

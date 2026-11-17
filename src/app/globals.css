@@ -23,6 +23,13 @@
   --gold: #ffc857;
   --cyan: #62e6ff;
   --rgb-split: 0px;
+  /* Luz que escapa de la pantalla de la TV: color (r,g,b), intensidad y origen */
+  --gr: 150;
+  --gg: 170;
+  --gb: 255;
+  --glow-i: 0.2;
+  --gx: 50%;
+  --gy: 45%;
 }
 
 @layer base {
@@ -455,51 +462,202 @@
 }
 
 /* --------------------------------------------------------------------------
-   Carcasa de TV
+   TV: CRT negra de los 90
+   Cabinet de plástico mate con cara de tubo abombada (4:3), cubierta con
+   ventilas, panel inferior con perillas y pies. La profundidad se sugiere con
+   la tapa que se estrecha hacia atrás y la sombra proyectada en la repisa.
    -------------------------------------------------------------------------- */
-.tv {
+.crt-tv {
   position: relative;
-  border-radius: 26px;
-  padding: 18px 18px 14px;
+  width: 100%;
+}
+
+/* Tapa superior con ventilas, en perspectiva (más angosta al fondo) */
+.crt-top {
+  height: 24px;
+  margin: 0 3.5%;
+  clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 14%),
-    linear-gradient(145deg, #2c2736 0%, #181520 55%, #100d17 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.6),
-    0 2px 0 #000,
-    0 30px 70px -20px rgba(0, 0, 0, 0.9),
-    0 0 90px -30px rgba(255, 79, 163, 0.35);
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0 3px, transparent 3px 10px) center 9px / 100% 8px no-repeat,
+    linear-gradient(180deg, #3b3b43, #232329);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.tv-bezel {
+.crt-cabinet {
   position: relative;
-  border-radius: 18px;
-  padding: 10px;
-  background: #050407;
+  border-radius: 20px 20px 14px 14px;
+  padding: 22px 22px 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 7%),
+    linear-gradient(160deg, #303038 0%, #1c1c22 55%, #121217 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 6px 18px rgba(0, 0, 0, 0.9);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 2px 0 0 rgba(255, 255, 255, 0.05),
+    inset -3px 0 8px rgba(0, 0, 0, 0.55),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.7),
+    0 2px 0 #000,
+    0 46px 60px -26px rgba(0, 0, 0, 0.95),
+    0 0 120px -30px rgba(var(--gr), var(--gg), var(--gb), calc(0.1 + var(--glow-i) * 0.45));
 }
 
-.tv-screen {
+/* Textura de plástico granulado */
+.crt-cabinet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .8 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Marco hundido alrededor del cristal */
+.crt-recess {
+  position: relative;
+  padding: 16px;
+  border-radius: 26px / 30px;
+  background: linear-gradient(145deg, #08080b, #17171c);
+  box-shadow:
+    inset 0 4px 12px rgba(0, 0, 0, 0.95),
+    inset 0 0 38px rgba(var(--gr), var(--gg), var(--gb), calc(var(--glow-i) * 0.22)),
+    inset 0 0 0 2px #050507,
+    0 1px 0 rgba(255, 255, 255, 0.1),
+    0 -1px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* Cristal: 4:3, esquinas redondeadas y bordes abombados */
+.crt-screen {
   position: relative;
   overflow: hidden;
-  border-radius: 14px / 18px;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  container-type: size;
+  border-radius: 7% / 9%;
+  background: #000;
   box-shadow:
-    inset 0 0 60px rgba(0, 0, 0, 0.85),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+    inset 0 0 100px rgba(0, 0, 0, 0.9),
+    0 0 0 3px #000;
 }
 
-/* Reflejo curvo del cristal */
-.tv-glare {
+/* Capa de vidrio: oscurecimiento hacia los bordes + reflejo curvo */
+.crt-glass {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 25;
   background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%),
-    radial-gradient(ellipse 80% 45% at 30% 0%, rgba(255, 255, 255, 0.05), transparent 70%);
+    radial-gradient(ellipse 125% 105% at 50% 42%, transparent 52%, rgba(0, 0, 0, 0.6) 100%),
+    linear-gradient(118deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.03) 22%, transparent 36%);
+}
+
+.crt-glass::after {
+  content: "";
+  position: absolute;
+  left: 7%;
+  top: 6%;
+  width: 34%;
+  height: 15%;
+  border-radius: 50%;
+  border-top: 2px solid rgba(255, 255, 255, 0.07);
+  border-left: 2px solid rgba(255, 255, 255, 0.04);
+  transform: rotate(-5deg);
+  filter: blur(1.5px);
+}
+
+/* Panel de controles bajo el cristal */
+.crt-panel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 4px 18px;
+}
+
+.crt-plate {
+  font-family: var(--font-display), monospace;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  color: #b4b4c0;
+  text-shadow: 0 1px 0 #000, 0 -1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.crt-knob {
+  --rot: 0deg;
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 28%, #6a6a76, #1d1d23 72%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 3px #0a0a0d,
+    0 0 0 4px rgba(255, 255, 255, 0.08),
+    0 4px 8px rgba(0, 0, 0, 0.7);
+  transform: rotate(var(--rot));
+  transition: transform 0.5s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+/* Aro estriado */
+.crt-knob::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(0, 0, 0, 0.35) 0 6deg, transparent 6deg 15deg);
+  opacity: 0.7;
+}
+
+/* Marca del indicador */
+.crt-knob::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 3px;
+  height: 11px;
+  margin-left: -1.5px;
+  background: #f4ece1;
+  border-radius: 1px;
+}
+
+.crt-feet {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 9%;
+}
+
+.crt-feet span {
+  width: 13%;
+  height: 12px;
+  background: linear-gradient(180deg, #17171c, #08080b);
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Luz de la pantalla sobre la sala: color e intensidad los anima GSAP */
+.tv-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse 52% 56% at var(--gx) var(--gy),
+    rgba(var(--gr), var(--gg), var(--gb), calc(var(--glow-i) * 0.42)) 0%,
+    rgba(var(--gr), var(--gg), var(--gb), calc(var(--glow-i) * 0.16)) 38%,
+    transparent 74%
+  );
+}
+
+/* Repisa sobre la que descansan TV y control */
+.shelf {
+  position: relative;
+  height: 16px;
+  background: linear-gradient(180deg, #2c2631 0%, #17131c 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(var(--gr), var(--gg), var(--gb), calc(0.14 + var(--glow-i) * 0.4)),
+    0 20px 40px -10px rgba(0, 0, 0, 0.9),
+    0 -2px 40px 0 rgba(var(--gr), var(--gg), var(--gb), calc(var(--glow-i) * 0.4));
 }
 
 .tv-led {
@@ -529,13 +687,14 @@
    -------------------------------------------------------------------------- */
 .remote {
   position: relative;
-  border-radius: 28px 28px 34px 34px;
+  border-radius: 16px 16px 22px 22px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 12%),
-    linear-gradient(160deg, #2a2633 0%, #17141f 60%, #0f0c15 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 10%),
+    linear-gradient(160deg, #2b2b33 0%, #1a1a20 60%, #111116 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
     inset 0 -3px 0 rgba(0, 0, 0, 0.6),
+    inset 6px 0 14px -8px rgba(var(--gr), var(--gg), var(--gb), calc(var(--glow-i) * 0.45)),
     0 2px 0 #000,
     0 24px 50px -18px rgba(0, 0, 0, 0.9);
 }
@@ -549,9 +708,9 @@
   justify-content: center;
   color: var(--cream);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 50%),
     var(--kface);
-  border-radius: 8px;
+  border-radius: 5px;
   font-family: var(--font-mono-ui), monospace;
   font-weight: 600;
   box-shadow:
@@ -588,6 +747,17 @@
   --kface: #ff4fa3;
   --kedge: #7a0c47;
   color: #1a0612;
+}
+
+/* Tecla pulsada (la intro la acciona sola) */
+.key[data-pressed="true"] {
+  transform: translateY(3px);
+  filter: brightness(1.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 0 var(--kedge),
+    0 0 0 6px rgba(255, 79, 163, 0.4),
+    0 0 22px 4px rgba(255, 79, 163, 0.55);
 }
 
 /* Tecla que se espera pulsar: respiración de aro */
